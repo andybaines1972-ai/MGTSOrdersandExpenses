@@ -1,106 +1,73 @@
 -- ═══════════════════════════════════════════════════════════════
---  MGTS Request & Expenses Hub — Create Auth Users + Roles
+--  MGTS Request & Expenses Hub — Create / Confirm Users + Roles
 --  Run in: Supabase Dashboard → SQL Editor
 --
---  Creates 3 test users in auth.users (email-confirmed, no invite)
---  then inserts their roles.
---
---  Default password for all: Mgts2025!
---  Change after first login via Supabase Auth → Users
+--  Safe to run multiple times (uses upsert / ON CONFLICT).
+--  Handles existing unconfirmed accounts created by setup-users.js.
+--  Default password for all test users: Mgts2025!
 -- ═══════════════════════════════════════════════════════════════
 
--- ── ENABLE pgcrypto (needed for crypt/gen_salt) ───────────────────
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ── CREATE AUTH USERS ─────────────────────────────────────────────
--- (Supabase SQL Editor runs with service role — can write auth.users)
+-- ── STEP 1: confirm + reset password for users created via signUp ─
+-- (Supabase SQL Editor = service role, bypasses RLS)
+UPDATE auth.users
+SET
+  email_confirmed_at = COALESCE(email_confirmed_at, now()),
+  encrypted_password = crypt('Mgts2025!', gen_salt('bf')),
+  updated_at         = now()
+WHERE email IN (
+  'andrew.baines@mgts.co.uk',
+  'authoriser@mgts.co.uk',
+  'requestor@mgts.co.uk'
+);
 
-DO $$
-DECLARE
-  uid_finance    uuid := gen_random_uuid();
-  uid_authoriser uuid := gen_random_uuid();
-  uid_requestor  uuid := gen_random_uuid();
-BEGIN
+-- ── STEP 2: create any users that don't exist yet ─────────────────
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email,
+  encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, recovery_token,
+  email_change_token_new, email_change
+)
+SELECT
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(), 'authenticated', 'authenticated',
+  u.email,
+  crypt('Mgts2025!', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  json_build_object('name', u.name),
+  now(), now(), '', '', '', ''
+FROM (VALUES
+  ('andrew.baines@mgts.co.uk', 'Andrew Baines'),
+  ('authoriser@mgts.co.uk',    'Test Authoriser'),
+  ('requestor@mgts.co.uk',     'Test Requestor')
+) AS u(email, name)
+WHERE NOT EXISTS (
+  SELECT 1 FROM auth.users WHERE email = u.email
+);
 
-  -- ── 1. Finance / Admin (Andy Baines) ──
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email,
-    encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at,
-    confirmation_token, recovery_token,
-    email_change_token_new, email_change
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    uid_finance, 'authenticated', 'authenticated',
-    'andrew.baines@mgts.co.uk',
-    crypt('Mgts2025!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"name":"Andrew Baines"}',
-    now(), now(), '', '', '', ''
-  )
-  ON CONFLICT (email) DO NOTHING;
-
-  INSERT INTO user_roles (email, name, role)
-  VALUES ('andrew.baines@mgts.co.uk', 'Andrew Baines', 'finance')
-  ON CONFLICT (email) DO NOTHING;
-
-  -- ── 2. Authoriser ──
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email,
-    encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at,
-    confirmation_token, recovery_token,
-    email_change_token_new, email_change
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    uid_authoriser, 'authenticated', 'authenticated',
-    'authoriser@mgts.co.uk',
-    crypt('Mgts2025!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"name":"Test Authoriser"}',
-    now(), now(), '', '', '', ''
-  )
-  ON CONFLICT (email) DO NOTHING;
-
-  INSERT INTO user_roles (email, name, role)
-  VALUES ('authoriser@mgts.co.uk', 'Test Authoriser', 'authoriser')
-  ON CONFLICT (email) DO NOTHING;
-
-  -- ── 3. Requestor ──
-  INSERT INTO auth.users (
-    instance_id, id, aud, role, email,
-    encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at,
-    confirmation_token, recovery_token,
-    email_change_token_new, email_change
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    uid_requestor, 'authenticated', 'authenticated',
-    'requestor@mgts.co.uk',
-    crypt('Mgts2025!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"name":"Test Requestor"}',
-    now(), now(), '', '', '', ''
-  )
-  ON CONFLICT (email) DO NOTHING;
-
-  INSERT INTO user_roles (email, name, role)
-  VALUES ('requestor@mgts.co.uk', 'Test Requestor', 'requestor')
-  ON CONFLICT (email) DO NOTHING;
-
-END $$;
+-- ── STEP 3: create / update user roles ───────────────────────────
+INSERT INTO public.user_roles (email, name, role, is_active)
+VALUES
+  ('andrew.baines@mgts.co.uk', 'Andrew Baines',  'finance',    true),
+  ('authoriser@mgts.co.uk',    'Test Authoriser', 'authoriser', true),
+  ('requestor@mgts.co.uk',     'Test Requestor',  'requestor',  true)
+ON CONFLICT (email) DO UPDATE
+  SET name      = EXCLUDED.name,
+      role      = EXCLUDED.role,
+      is_active = EXCLUDED.is_active;
 
 -- ── VERIFY ────────────────────────────────────────────────────────
-SELECT au.email, ur.name, ur.role, ur.is_active
+SELECT
+  au.email,
+  ur.name,
+  ur.role,
+  CASE WHEN au.email_confirmed_at IS NOT NULL THEN 'confirmed' ELSE 'UNCONFIRMED' END AS status
 FROM auth.users au
-JOIN user_roles ur ON ur.email = au.email
+JOIN public.user_roles ur ON ur.email = au.email
 ORDER BY ur.role;
 
--- Expected: 3 rows — andrew.baines@, authoriser@, requestor@
--- All with role: finance / authoriser / requestor
+-- Expected: 3 rows, all status = confirmed
