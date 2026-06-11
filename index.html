@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MGTS Request &amp; Expenses Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --orange:#f58220;
+  --dark:#231f20;
+  --light:#fdf6ee;
+  --mid:#fde8cc;
+  --grey:#6b7280;
+  --border:#e5e7eb;
+  --white:#ffffff;
+  --green:#16a34a;
+  --red:#dc2626;
+  --blue:#2563eb;
+  --amber:#d97706;
+  --radius:8px;
+  --shadow:0 2px 8px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f4;color:var(--dark);font-size:14px}
+h1,h2,h3{font-weight:600}
+
+/* ── NAV ─────────────────────────────────────────── */
+#nav{background:var(--dark);color:var(--white);display:flex;align-items:center;padding:0 20px;height:56px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+#nav .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--orange)}
+#nav .logo span{color:var(--white);font-weight:400;font-size:13px}
+#nav .spacer{flex:1}
+#nav .user-info{font-size:13px;color:#ccc}
+#nav .user-info strong{color:var(--orange)}
+.nav-btn{background:none;border:1px solid #555;color:#ccc;padding:5px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:.2s}
+.nav-btn:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ── TABS ────────────────────────────────────────── */
+#tabs{background:var(--white);border-bottom:2px solid var(--border);display:flex;gap:0;padding:0 20px;overflow-x:auto}
+.tab{padding:14px 20px;cursor:pointer;font-weight:500;color:var(--grey);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:.2s;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--dark)}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
+.badge{background:var(--orange);color:var(--white);border-radius:12px;padding:1px 7px;font-size:11px;font-weight:700}
+
+/* ── LAYOUT ──────────────────────────────────────── */
+#main{padding:20px;max-width:1300px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+
+/* ── CARDS ───────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border-left:4px solid var(--orange)}
+.stat-card h3{font-size:28px;color:var(--orange)}
+.stat-card p{color:var(--grey);font-size:12px;margin-top:4px}
+
+/* ── TOOLBAR ─────────────────────────────────────── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar h2{flex:1;font-size:16px}
+.btn{padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-weight:600;font-size:13px;transition:.2s}
+.btn-primary{background:var(--orange);color:var(--white)}
+.btn-primary:hover{background:#d4701a}
+.btn-secondary{background:var(--white);color:var(--dark);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
+.btn-success{background:var(--green);color:var(--white)}
+.btn-danger{background:var(--red);color:var(--white)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+input[type=search]{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;width:220px;outline:none}
+input[type=search]:focus{border-color:var(--orange)}
+select.filter{padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--white);cursor:pointer}
+
+/* ── TABLE ───────────────────────────────────────── */
+.table-wrap{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:#f9fafb;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--grey);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.ref{font-family:monospace;font-weight:600;color:var(--dark)}
+
+/* ── STATUS BADGES ───────────────────────────────── */
+.status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap}
+.s-pending{background:#fef3c7;color:#92400e}
+.s-authorised{background:#dcfce7;color:#14532d}
+.s-rejected{background:#fee2e2;color:#7f1d1d}
+.s-processed{background:#dbeafe;color:#1e3a8a}
+.s-draft{background:#f3f4f6;color:#374151}
+
+/* ── MODAL ───────────────────────────────────────── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:var(--radius);width:100%;max-width:820px;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden}
+.modal-hdr{background:var(--dark);color:var(--white);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{font-size:15px;display:flex;align-items:center;gap:8px}
+.modal-hdr h3 span{background:var(--orange);padding:2px 8px;border-radius:4px;font-size:12px}
+.modal-close{background:none;border:none;color:var(--white);font-size:22px;cursor:pointer;line-height:1}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;background:#f9fafb;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ── FORM ────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:600;color:var(--grey)}
+input,select,textarea{padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--white);transition:.2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 2px rgba(245,130,32,.15)}
+input[readonly],select[disabled]{background:#f9fafb;color:var(--grey);cursor:default}
+textarea{resize:vertical;min-height:70px}
+
+/* ── LINE ITEMS TABLE ────────────────────────────── */
+.line-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.line-table th{background:#f9fafb;padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--grey);border:1px solid var(--border)}
+.line-table td{padding:4px 6px;border:1px solid var(--border)}
+.line-table input,.line-table select{border:none;padding:4px 6px;background:transparent;width:100%;font-size:13px}
+.line-table input:focus,.line-table select:focus{outline:none;background:var(--light)}
+.line-table .del-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;line-height:1}
+.add-line-btn{margin-top:6px;font-size:12px;padding:5px 10px}
+.totals-block{background:var(--light);border:1px solid var(--mid);border-radius:var(--radius);padding:12px;margin-top:12px;display:grid;gap:4px}
+.total-row{display:flex;justify-content:space-between;font-size:13px}
+.total-row.grand{font-weight:700;font-size:15px;color:var(--orange);border-top:1px solid var(--mid);padding-top:6px;margin-top:4px}
+
+/* ── SECTION DIVIDER ─────────────────────────────── */
+.divider{font-size:11px;font-weight:700;color:var(--grey);letter-spacing:.08em;text-transform:uppercase;padding:14px 0 6px;border-bottom:1px solid var(--border);margin-bottom:12px;grid-column:1/-1}
+
+/* ── FINANCE PANEL ───────────────────────────────── */
+.finance-panel{background:var(--light);border:1px solid var(--mid);border-radius:var(--radius);padding:14px;margin-top:14px}
+.finance-panel h4{font-size:12px;font-weight:700;color:var(--orange);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+
+/* ── LOGIN ───────────────────────────────────────── */
+#login-view{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--dark)}
+.login-box{background:var(--white);border-radius:12px;padding:36px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.login-box .logo-lg{font-size:32px;font-weight:800;color:var(--orange);margin-bottom:4px}
+.login-box .sub{color:var(--grey);font-size:13px;margin-bottom:24px}
+.login-box .form-group{margin-bottom:14px}
+.login-box label{display:block;font-size:12px;font-weight:600;color:var(--grey);margin-bottom:4px}
+.login-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px}
+.login-box .btn-login{width:100%;padding:11px;background:var(--orange);color:var(--white);border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+.login-box .btn-login:hover{background:#d4701a}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:18px}
+.login-footer{text-align:center;margin-top:18px;font-size:11px;color:#aaa}
+
+/* ── EMPTY STATE ─────────────────────────────────── */
+.empty{text-align:center;padding:48px 20px;color:var(--grey)}
+.empty .icon{font-size:40px;margin-bottom:10px}
+.empty p{margin-bottom:16px}
+
+/* ── TOAST ───────────────────────────────────────── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:var(--white);padding:12px 20px;border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px;z-index:999;opacity:0;transform:translateY(10px);transition:.3s;pointer-events:none;max-width:320px}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.ok{border-left:4px solid var(--green)}
+#toast.err{border-left:4px solid var(--red)}
+
+/* ── SPINNER ─────────────────────────────────────── */
+.spinner{width:36px;height:36px;border:4px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── NOTES ───────────────────────────────────────── */
+.notes-thread{margin-top:14px;display:grid;gap:8px}
+.note-card{background:#f9fafb;border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.note-meta{font-size:11px;color:var(--grey);margin-bottom:4px}
+.note-text{font-size:13px}
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr}
+  .form-grid.cols3{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  #main{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════ LOGIN ═══ -->
+<div id="login-view">
+  <div class="login-box">
+    <div class="logo-lg">MGTS</div>
+    <div class="sub">Midland Group Training Services<br>Request &amp; Expenses Hub</div>
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" id="li-email" placeholder="you@mgts.co.uk" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="li-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="li-err"></div>
+    <div class="login-footer">Built by Andy Baines · MGTS 2025</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ APP ═══ -->
+<div id="app-view" style="display:none">
+
+  <!-- NAV -->
+  <div id="nav">
+    <div class="logo">MGTS <span>Request &amp; Expenses Hub</span></div>
+    <div class="spacer"></div>
+    <div class="user-info">Signed in as <strong id="nav-name">—</strong> &nbsp;·&nbsp; <span id="nav-role">—</span></div>
+    <button class="nav-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <div class="tab active" onclick="showTab('dash')" id="tab-dash">Dashboard</div>
+    <div class="tab" onclick="showTab('purchase')" id="tab-purchase">Purchase Requests <span class="badge" id="badge-pr">0</span></div>
+    <div class="tab" onclick="showTab('expense')" id="tab-expense">Expense Claims <span class="badge" id="badge-ex">0</span></div>
+    <div class="tab" onclick="showTab('mileage')" id="tab-mileage">Mileage Claims <span class="badge" id="badge-mi">0</span></div>
+    <div class="tab" id="tab-admin" style="display:none" onclick="showTab('admin')">Admin</div>
+  </div>
+
+  <div id="main">
+
+    <!-- ── DASHBOARD ──────────────────────────────── -->
+    <div class="section active" id="sec-dash">
+      <div class="stats" id="dash-stats"></div>
+      <div id="dash-pending"></div>
+    </div>
+
+    <!-- ── PURCHASE REQUESTS ──────────────────────── -->
+    <div class="section" id="sec-purchase">
+      <div class="toolbar">
+        <h2>Purchase Requests</h2>
+        <input type="search" placeholder="Search…" oninput="renderPR()" id="pr-search">
+        <select class="filter" onchange="renderPR()" id="pr-filter">
+          <option value="">All Statuses</option>
+          <option>Pending</option><option>Authorised</option>
+          <option>Rejected</option><option>Processed</option>
+        </select>
+        <button class="btn btn-primary" id="pr-new-btn" onclick="openPRModal()">+ New Request</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ref</th><th>Requested By</th><th>Date</th>
+            <th>Supplier</th><th>Total</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="pr-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── EXPENSE CLAIMS ─────────────────────────── -->
+    <div class="section" id="sec-expense">
+      <div class="toolbar">
+        <h2>Expense Claims</h2>
+        <input type="search" placeholder="Search…" oninput="renderEX()" id="ex-search">
+        <select class="filter" onchange="renderEX()" id="ex-filter">
+          <option value="">All Statuses</option>
+          <option>Pending</option><option>Authorised</option>
+          <option>Rejected</option><option>Processed</option>
+        </select>
+        <button class="btn btn-primary" id="ex-new-btn" onclick="openEXModal()">+ New Claim</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ref</th><th>Employee</th><th>Month</th>
+            <th>Total</th><th>VAT</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="ex-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── MILEAGE CLAIMS ─────────────────────────── -->
+    <div class="section" id="sec-mileage">
+      <div class="toolbar">
+        <h2>Mileage Claims</h2>
+        <input type="search" placeholder="Search…" oninput="renderMI()" id="mi-search">
+        <select class="filter" onchange="renderMI()" id="mi-filter">
+          <option value="">All Statuses</option>
+          <option>Pending</option><option>Authorised</option>
+          <option>Rejected</option><option>Processed</option>
+        </select>
+        <button class="btn btn-primary" id="mi-new-btn" onclick="openMIModal()">+ New Claim</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ref</th><th>Employee</th><th>Month</th>
+            <th>Vehicle</th><th>Business Miles</th><th>Total Claim</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="mi-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ──────────────────────────────────── -->
+    <div class="section" id="sec-admin">
+      <div class="toolbar"><h2>User Management</h2>
+        <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th></tr></thead>
+          <tbody id="user-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-view -->
+
+<!-- ══════════════════════════════════════ PURCHASE REQUEST MODAL ═══ -->
+<div class="modal-bg" id="pr-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="pr-modal-title">New Purchase Request <span id="pr-modal-ref"></span></h3>
+      <button class="modal-close" onclick="closeModal('pr-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pr-id">
+      <div class="form-grid">
+        <div class="divider">Request Details</div>
+        <div class="form-group">
+          <label>Requested By *</label>
+          <select id="pr-requested-by"></select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="pr-date">
+        </div>
+        <div class="form-group">
+          <label>Site</label>
+          <select id="pr-site">
+            <option value="">— Select —</option>
+            <option>COV</option><option>WSB</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Supplier</label>
+          <input type="text" id="pr-supplier" placeholder="Supplier name">
+        </div>
+        <div class="form-group full">
+          <label>Reason for Request *</label>
+          <textarea id="pr-reason" rows="2" placeholder="Explain why this purchase is needed"></textarea>
+        </div>
+
+        <div class="divider">Line Items</div>
+      </div>
+
+      <table class="line-table" id="pr-lines-table">
+        <thead><tr>
+          <th style="width:40%">Description</th>
+          <th style="width:10%">Qty</th>
+          <th style="width:18%">Unit Price (£)</th>
+          <th style="width:18%">Total (£)</th>
+          <th style="width:14%"></th>
+        </tr></thead>
+        <tbody id="pr-lines-body"></tbody>
+      </table>
+      <button class="btn btn-secondary add-line-btn" onclick="addPRLine()">+ Add Line</button>
+
+      <div class="totals-block">
+        <div class="total-row"><span>Subtotal</span><span id="pr-subtotal">£0.00</span></div>
+        <div class="total-row"><span>Delivery</span>
+          <span><input type="number" id="pr-delivery" value="0" min="0" step="0.01" style="width:90px;text-align:right" oninput="calcPRTotals()">
+          </span>
+        </div>
+        <div class="total-row grand"><span>Total excl. VAT</span><span id="pr-total">£0.00</span></div>
+      </div>
+
+      <!-- Finance panel -->
+      <div class="finance-panel" id="pr-finance-panel" style="display:none">
+        <h4>Finance Processing</h4>
+        <div class="form-grid cols3">
+          <div class="form-group">
+            <label>PO Number</label>
+            <input type="text" id="pr-po">
+          </div>
+          <div class="form-group">
+            <label>NL Code</label>
+            <input type="text" id="pr-nl">
+          </div>
+          <div class="form-group">
+            <label>PL A/C Code</label>
+            <input type="text" id="pr-pl">
+          </div>
+          <div class="form-group full">
+            <label>Payment Method</label>
+            <select id="pr-payment">
+              <option value="">— Select —</option>
+              <option>On Account</option>
+              <option>Credit Card / Online Purchase</option>
+              <option>BACS</option>
+              <option>Pro-Forma</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Finance Notes</label>
+            <textarea id="pr-finance-notes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auth notes -->
+      <div class="form-group" id="pr-auth-note-group" style="margin-top:14px;display:none">
+        <label>Authoriser Notes</label>
+        <textarea id="pr-auth-notes" rows="2" placeholder="Optional notes for rejection reason, etc."></textarea>
+      </div>
+
+    </div><!-- /modal-body -->
+    <div class="modal-footer" id="pr-modal-footer"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ EXPENSE CLAIM MODAL ═══ -->
+<div class="modal-bg" id="ex-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>Expense Claim <span id="ex-modal-ref"></span></h3>
+      <button class="modal-close" onclick="closeModal('ex-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ex-id">
+      <div class="form-grid">
+        <div class="divider">Claim Details</div>
+        <div class="form-group">
+          <label>Employee Name *</label>
+          <select id="ex-employee"></select>
+        </div>
+        <div class="form-group">
+          <label>Claim Month *</label>
+          <input type="month" id="ex-month">
+        </div>
+        <div class="divider">Expense Lines</div>
+      </div>
+
+      <table class="line-table" id="ex-lines-table">
+        <thead><tr>
+          <th>Date</th><th style="width:28%">Description</th>
+          <th>Total (£)</th><th>VAT?</th>
+          <th>Ex VAT (£)</th><th>VAT (£)</th>
+          <th>NL Code</th><th></th>
+        </tr></thead>
+        <tbody id="ex-lines-body"></tbody>
+      </table>
+      <button class="btn btn-secondary add-line-btn" onclick="addEXLine()">+ Add Expense</button>
+
+      <div class="totals-block">
+        <div class="total-row"><span>Total Cost</span><span id="ex-total">£0.00</span></div>
+        <div class="total-row"><span>Total VAT</span><span id="ex-vat">£0.00</span></div>
+        <div class="total-row grand"><span>Total Ex VAT</span><span id="ex-exvat">£0.00</span></div>
+      </div>
+
+      <div class="finance-panel" id="ex-finance-panel" style="display:none">
+        <h4>Finance Processing</h4>
+        <div class="form-group">
+          <label>Finance Notes</label>
+          <textarea id="ex-finance-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="form-group" id="ex-auth-note-group" style="margin-top:14px;display:none">
+        <label>Authoriser Notes</label>
+        <textarea id="ex-auth-notes" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" id="ex-modal-footer"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ MILEAGE CLAIM MODAL ═══ -->
+<div class="modal-bg" id="mi-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>Mileage Claim <span id="mi-modal-ref"></span></h3>
+      <button class="modal-close" onclick="closeModal('mi-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mi-id">
+      <div class="form-grid">
+        <div class="divider">Claim Details</div>
+        <div class="form-group">
+          <label>Employee Name *</label>
+          <select id="mi-employee"></select>
+        </div>
+        <div class="form-group">
+          <label>Claim Month *</label>
+          <input type="month" id="mi-month">
+        </div>
+        <div class="form-group">
+          <label>Vehicle Registration</label>
+          <input type="text" id="mi-reg" placeholder="e.g. AB12 CDE">
+        </div>
+        <div class="form-group">
+          <label>Vehicle Type *</label>
+          <select id="mi-vtype" onchange="updateMIRate()">
+            <option value="">— Select —</option>
+            <option value="0.45">Own Car (up to 10,000 miles) — £0.45/mile</option>
+            <option value="0.25">Own Car (over 10,000 miles) — £0.25/mile</option>
+            <option value="0.11">Company Car Diesel ≤1600cc — £0.11/mile</option>
+            <option value="0.13">Company Car Diesel 1601–2000cc — £0.13/mile</option>
+            <option value="0.17">Company Car Diesel &gt;2000cc — £0.17/mile</option>
+            <option value="0.12">Company Car Petrol ≤1400cc — £0.12/mile</option>
+            <option value="0.14">Company Car Petrol 1401–2000cc — £0.14/mile</option>
+            <option value="0.22">Company Car Petrol &gt;2000cc — £0.22/mile</option>
+            <option value="0.12">Company Car Hybrid ≤1400cc — £0.12/mile</option>
+            <option value="0.14">Company Car Hybrid 1401–2000cc — £0.14/mile</option>
+            <option value="0.22">Company Car Hybrid &gt;2000cc — £0.22/mile</option>
+            <option value="0.07">Company Car Fully Electric — £0.07/mile</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mileage Rate (£/mile)</label>
+          <input type="number" id="mi-rate" step="0.01" readonly style="width:100px">
+        </div>
+        <div class="divider">Odometer Readings</div>
+        <div class="form-group">
+          <label>Month Start Mileage</label>
+          <input type="number" id="mi-start" min="0" oninput="calcMITotals()">
+        </div>
+        <div class="form-group">
+          <label>Month End Mileage</label>
+          <input type="number" id="mi-end" min="0" oninput="calcMITotals()">
+        </div>
+        <div class="form-group">
+          <label>Total Mileage</label>
+          <input type="number" id="mi-total-miles" readonly>
+        </div>
+        <div class="form-group">
+          <label>Business Miles *</label>
+          <input type="number" id="mi-business" min="0" oninput="calcMITotals()">
+        </div>
+        <div class="form-group">
+          <label>Private Miles</label>
+          <input type="number" id="mi-private" min="0" readonly>
+        </div>
+        <div class="divider">Journey Log</div>
+      </div>
+
+      <table class="line-table">
+        <thead><tr>
+          <th>Date</th><th style="width:35%">Description / Route</th>
+          <th>Miles</th><th></th>
+        </tr></thead>
+        <tbody id="mi-journeys-body"></tbody>
+      </table>
+      <button class="btn btn-secondary add-line-btn" onclick="addMIJourney()">+ Add Journey</button>
+
+      <div class="form-grid" style="margin-top:12px">
+        <div class="form-group">
+          <label>Daily Commute Distance (miles)</label>
+          <input type="number" id="mi-commute" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Overnight Stays</label>
+          <input type="number" id="mi-overnights" min="0" value="0" oninput="calcMITotals()">
+        </div>
+      </div>
+
+      <div class="totals-block">
+        <div class="total-row"><span>Business Miles</span><span id="mi-disp-miles">0</span></div>
+        <div class="total-row"><span>Mileage Claim (<span id="mi-disp-rate">£0.00</span>/mile)</span><span id="mi-mileage-total">£0.00</span></div>
+        <div class="total-row"><span>Overnight Stays (<span id="mi-disp-nights">0</span> × £35.00)</span><span id="mi-overnight-total">£0.00</span></div>
+        <div class="total-row grand"><span>Total Claim</span><span id="mi-grand-total">£0.00</span></div>
+      </div>
+
+      <div class="finance-panel" id="mi-finance-panel" style="display:none">
+        <h4>Finance Processing</h4>
+        <div class="form-group">
+          <label>Finance Notes</label>
+          <textarea id="mi-finance-notes" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="form-group" id="mi-auth-note-group" style="margin-top:14px;display:none">
+        <label>Authoriser Notes</label>
+        <textarea id="mi-auth-notes" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" id="mi-modal-footer"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ USER ADMIN MODAL ═══ -->
+<div class="modal-bg" id="user-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <h3 id="user-modal-title">Add User</h3>
+      <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="um-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="um-name">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" id="um-email">
+        </div>
+        <div class="form-group">
+          <label>Role *</label>
+          <select id="um-role">
+            <option value="requestor">Requestor</option>
+            <option value="authoriser">Authoriser</option>
+            <option value="finance">Finance</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Active</label>
+          <select id="um-active">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  MGTS REQUEST & EXPENSES HUB
+//  Replace SUPABASE_URL and SUPABASE_ANON_KEY with your
+//  new Supabase project credentials before deploying.
+// ═══════════════════════════════════════════════════════════
+
+const SUPABASE_URL  = 'https://dezhhevqmskbtxmunuem.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlemhoZXZxbXNrYnR4bXVudWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODk2MDIsImV4cCI6MjA5Njc2NTYwMn0.rCDo4GiV83SxDGngnhIqCjOpLftDg8_NmiWmfpX0rwQ';
+const FINANCE_EMAIL = 'andybaines1972@gmail.co.uk';
+
+const _db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── STATE ─────────────────────────────────────────────────
+const S = { user:null, role:null, name:null };
+
+// ── STAFF LIST ────────────────────────────────────────────
+const STAFF = [
+  'Paul Adderley','Janet Allbon','Lin Atkins','Kodie Aubrey','Andrew Baines',
+  'Tom Ball','Lee Beesley','Luke Bennett','David Bridgens','Russell Brown',
+  'David Cartwright','Ashley Coupland','Ian Cross','Neville D\'Vaz','Stuart Ellinor',
+  'Melanie Ferreira','Jordan Geoghegan','Stuart George','Inderpal Ghatora',
+  'Maria Habuc','Lorraine Hartland','Chris Ison','Paul Jeffreys','Vivien Kendrick',
+  'Chris Keogh','Oliver Kolontari','Laura Lower','Robert Lynn','Richard McCallum',
+  'John Miller','Adam Murray','Keith Myatt','Sean O\'Brien','Stephen Palmer',
+  'Jessica Pease','Ellen Pinks','Angela Rowley','Roger Rowley','Sophie Russell',
+  'Mark Shiers','Adrian Simkiss','Ruth Smith','Debbie Smith','Oliver Smith',
+  'Karli Soanes','Richard Telford','Matthew Turner','Levi Watts','Jason Woliter'
+].sort();
+
+// ── HELPERS ───────────────────────────────────────────────
+const fmt = n => '£' + (parseFloat(n)||0).toFixed(2);
+const today = () => new Date().toISOString().slice(0,10);
+const nowMonth = () => new Date().toISOString().slice(0,7);
+const statusCls = s => ({
+  'Pending':'s-pending','Authorised':'s-authorised',
+  'Rejected':'s-rejected','Processed':'s-processed','Draft':'s-draft'
+}[s]||'s-draft');
+
+function toast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show '+type;
+  setTimeout(()=>t.className='', 3200);
+}
+
+function populateStaff(selId, val=''){
+  const sel = document.getElementById(selId);
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    STAFF.map(n=>`<option${n===val?' selected':''}>${n}</option>`).join('');
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+async function doLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const pass  = document.getElementById('li-pass').value;
+  document.getElementById('li-err').textContent = '';
+  if(!email||!pass){ document.getElementById('li-err').textContent='Enter email and password.'; return; }
+
+  const { data, error } = await _db.auth.signInWithPassword({ email, password: pass });
+  if(error){ document.getElementById('li-err').textContent = error.message; return; }
+
+  await initApp(data.user);
+}
+
+async function doLogout(){
+  await _db.auth.signOut();
+  S.user=S.role=S.name=null;
+  document.getElementById('app-view').style.display='none';
+  document.getElementById('login-view').style.display='flex';
+}
+
+async function initApp(user){
+  S.user = user;
+  const { data } = await _db.from('user_roles').select('*').eq('email', user.email).single();
+  if(!data){ toast('Your account has no role assigned. Contact Finance.','err'); return; }
+  S.role = data.role;
+  S.name = data.name;
+
+  document.getElementById('nav-name').textContent = S.name;
+  document.getElementById('nav-role').textContent = S.role.charAt(0).toUpperCase()+S.role.slice(1);
+
+  // show/hide UI by role
+  document.getElementById('pr-new-btn').style.display  = S.role==='requestor'?'':'none';
+  document.getElementById('ex-new-btn').style.display  = S.role==='requestor'?'':'none';
+  document.getElementById('mi-new-btn').style.display  = S.role==='requestor'?'':'none';
+  document.getElementById('tab-admin').style.display   = S.role==='finance'?'':'none';
+
+  document.getElementById('login-view').style.display='none';
+  document.getElementById('app-view').style.display='block';
+
+  await refreshAll();
+  showTab('dash');
+}
+
+_db.auth.getSession().then(({ data: { session } })=>{
+  if(session) initApp(session.user);
+});
+
+// ── DATA ──────────────────────────────────────────────────
+let ALL_PR=[], ALL_EX=[], ALL_MI=[], ALL_USERS=[];
+
+async function refreshAll(){
+  await Promise.all([loadPR(), loadEX(), loadMI(), loadUsers()]);
+  renderDash(); updateBadges();
+}
+
+async function loadPR(){
+  let q = _db.from('purchase_requests').select('*').order('created_at',{ascending:false});
+  if(S.role==='requestor') q = q.eq('requested_by_email', S.user.email);
+  const { data } = await q;
+  ALL_PR = data||[];
+}
+async function loadEX(){
+  let q = _db.from('expense_claims').select('*').order('created_at',{ascending:false});
+  if(S.role==='requestor') q = q.eq('employee_email', S.user.email);
+  const { data } = await q;
+  ALL_EX = data||[];
+}
+async function loadMI(){
+  let q = _db.from('mileage_claims').select('*').order('created_at',{ascending:false});
+  if(S.role==='requestor') q = q.eq('employee_email', S.user.email);
+  const { data } = await q;
+  ALL_MI = data||[];
+}
+async function loadUsers(){
+  if(S.role!=='finance') return;
+  const { data } = await _db.from('user_roles').select('*').order('name');
+  ALL_USERS = data||[];
+}
+
+// ── REF NUMBERS ───────────────────────────────────────────
+async function nextRef(prefix, table){
+  const { count } = await _db.from(table).select('*',{count:'exact',head:true});
+  return prefix + String((count||0)+1).padStart(4,'0');
+}
+
+// ── TABS / NAV ────────────────────────────────────────────
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('sec-'+t).classList.add('active');
+  if(t==='purchase') renderPR();
+  if(t==='expense')  renderEX();
+  if(t==='mileage')  renderMI();
+  if(t==='admin')    renderUsers();
+}
+
+function updateBadges(){
+  const pending = arr => arr.filter(r=>r.status==='Pending').length;
+  document.getElementById('badge-pr').textContent = pending(ALL_PR);
+  document.getElementById('badge-ex').textContent = pending(ALL_EX);
+  document.getElementById('badge-mi').textContent = pending(ALL_MI);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+function renderDash(){
+  const totalPend = ALL_PR.concat(ALL_EX).concat(ALL_MI).filter(r=>r.status==='Pending').length;
+  const prAuth  = ALL_PR.filter(r=>r.status==='Authorised').length;
+  const allProc = ALL_PR.concat(ALL_EX).concat(ALL_MI).filter(r=>r.status==='Processed').length;
+  const prPend  = ALL_PR.filter(r=>r.status==='Pending').length;
+  const exPend  = ALL_EX.filter(r=>r.status==='Pending').length;
+  const miPend  = ALL_MI.filter(r=>r.status==='Pending').length;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card"><h3>${totalPend}</h3><p>Pending Approval</p></div>
+    <div class="stat-card"><h3>${prPend}</h3><p>Purchase Requests Pending</p></div>
+    <div class="stat-card"><h3>${exPend}</h3><p>Expense Claims Pending</p></div>
+    <div class="stat-card"><h3>${miPend}</h3><p>Mileage Claims Pending</p></div>
+    <div class="stat-card"><h3>${prAuth}</h3><p>Purchase Requests Authorised</p></div>
+    <div class="stat-card"><h3>${allProc}</h3><p>Total Processed</p></div>`;
+
+  // pending items list for authoriser/finance
+  let html = '';
+  if(S.role !== 'requestor'){
+    const items = [
+      ...ALL_PR.filter(r=>r.status==='Pending').map(r=>({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total})),
+      ...ALL_EX.filter(r=>r.status==='Pending').map(r=>({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total})),
+      ...ALL_MI.filter(r=>r.status==='Pending').map(r=>({...r,type:'MI',label:'Mileage Claim',ref:r.ref_number,who:r.employee_name,amt:r.total_claim}))
+    ];
+    if(items.length){
+      html = `<div class="toolbar"><h2>Pending Items — Action Required</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Amount</th><th>Date</th><th></th></tr></thead>
+        <tbody>${items.map(i=>`<tr>
+          <td><span class="ref">${i.ref}</span></td>
+          <td>${i.label}</td><td>${i.who||'—'}</td>
+          <td>${fmt(i.amt)}</td>
+          <td>${(i.created_at||'').slice(0,10)}</td>
+          <td><button class="btn btn-sm btn-primary" onclick="openByRef('${i.type}','${i.id}')">Review</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+    } else {
+      html = `<div class="empty"><div class="icon">✅</div><p>No pending items — you're all caught up.</p></div>`;
+    }
+  }
+  document.getElementById('dash-pending').innerHTML = html;
+}
+
+function openByRef(type, id){
+  if(type==='PR'){ showTab('purchase'); openPRModal(id); }
+  if(type==='EX'){ showTab('expense');  openEXModal(id); }
+  if(type==='MI'){ showTab('mileage');  openMIModal(id); }
+}
+
+// ── PURCHASE REQUESTS ─────────────────────────────────────
+function renderPR(){
+  const q   = (document.getElementById('pr-search').value||'').toLowerCase();
+  const flt = document.getElementById('pr-filter').value;
+  const rows = ALL_PR.filter(r=>{
+    if(flt && r.status!==flt) return false;
+    if(q && !(r.ref_number+r.requested_by+r.supplier||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('pr-tbody');
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><p>No purchase requests found.</p></div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td><span class="ref">${r.ref_number}</span></td>
+    <td>${r.requested_by||'—'}</td>
+    <td>${r.request_date||'—'}</td>
+    <td>${r.supplier||'—'}</td>
+    <td>${fmt(r.total)}</td>
+    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><button class="btn btn-sm btn-secondary" onclick="openPRModal('${r.id}')">View</button></td>
+  </tr>`).join('');
+}
+
+async function openPRModal(id){
+  populateStaff('pr-requested-by');
+  const modal = document.getElementById('pr-modal');
+  const footer = document.getElementById('pr-modal-footer');
+  document.getElementById('pr-id').value = '';
+  document.getElementById('pr-lines-body').innerHTML = '';
+  document.getElementById('pr-finance-panel').style.display = 'none';
+  document.getElementById('pr-auth-note-group').style.display = 'none';
+  document.getElementById('pr-delivery').value = 0;
+  calcPRTotals();
+
+  if(!id){
+    // new
+    document.getElementById('pr-modal-title').innerHTML = 'New Purchase Request';
+    document.getElementById('pr-modal-ref').textContent = '';
+    document.getElementById('pr-date').value = today();
+    document.getElementById('pr-site').value = '';
+    document.getElementById('pr-supplier').value = '';
+    document.getElementById('pr-reason').value = '';
+    addPRLine();
+    footer.innerHTML = `
+      <button class="btn btn-secondary" onclick="closeModal('pr-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePR()">Submit Request</button>`;
+    modal.classList.add('open'); return;
+  }
+
+  const r = ALL_PR.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('pr-id').value = r.id;
+  document.getElementById('pr-modal-ref').textContent = r.ref_number;
+  populateStaff('pr-requested-by', r.requested_by);
+  document.getElementById('pr-date').value = r.request_date||today();
+  document.getElementById('pr-site').value = r.site||'';
+  document.getElementById('pr-supplier').value = r.supplier||'';
+  document.getElementById('pr-reason').value = r.reason||'';
+  document.getElementById('pr-delivery').value = r.delivery_cost||0;
+
+  // load lines
+  const lines = r.items||[];
+  lines.forEach(()=>addPRLine());
+  const trs = document.getElementById('pr-lines-body').querySelectorAll('tr');
+  lines.forEach((ln,i)=>{
+    if(!trs[i]) return;
+    trs[i].querySelector('.pr-desc').value = ln.description||'';
+    trs[i].querySelector('.pr-qty').value  = ln.qty||1;
+    trs[i].querySelector('.pr-unit').value = ln.unit_price||0;
+  });
+  calcPRTotals();
+
+  // readonly if not editable
+  const readOnly = !['Pending'].includes(r.status) || S.role==='requestor';
+  document.querySelectorAll('#pr-modal input:not([type=hidden]),#pr-modal select,#pr-modal textarea').forEach(el=>{
+    if(!el.id.startsWith('pr-po')&&!el.id.startsWith('pr-nl')&&!el.id.startsWith('pr-pl')&&
+       !el.id.startsWith('pr-payment')&&!el.id.startsWith('pr-finance')&&!el.id.startsWith('pr-auth')){
+      el.readOnly = readOnly; if(el.tagName==='SELECT') el.disabled = readOnly;
+    }
+  });
+
+  // finance panel
+  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+    document.getElementById('pr-finance-panel').style.display = '';
+    document.getElementById('pr-po').value = r.po_number||'';
+    document.getElementById('pr-nl').value = r.nl_code||'';
+    document.getElementById('pr-pl').value = r.pl_account||'';
+    document.getElementById('pr-payment').value = r.payment_method||'';
+    document.getElementById('pr-finance-notes').value = r.finance_notes||'';
+  }
+
+  // authoriser notes
+  if(S.role==='authoriser' && r.status==='Pending'){
+    document.getElementById('pr-auth-note-group').style.display = '';
+  }
+
+  // footer buttons
+  let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
+  if(S.role==='authoriser' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
+  }
+  if(S.role==='finance' && r.status==='Authorised'){
+    btns += `<button class="btn btn-primary" onclick="savePRFinance('${r.id}')">Save & Process</button>`;
+  }
+  if(S.role==='requestor' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="deletePR('${r.id}')">Delete</button>`;
+  }
+  footer.innerHTML = btns;
+  modal.classList.add('open');
+}
+
+function addPRLine(){
+  const idx = Date.now();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="pr-desc" type="text" placeholder="Description" oninput="calcPRTotals()"></td>
+    <td><input class="pr-qty" type="number" value="1" min="1" style="width:60px" oninput="calcPRTotals()"></td>
+    <td><input class="pr-unit" type="number" value="0" min="0" step="0.01" style="width:80px" oninput="calcPRTotals()"></td>
+    <td class="pr-line-total">£0.00</td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove();calcPRTotals()">×</button></td>`;
+  document.getElementById('pr-lines-body').appendChild(tr);
+}
+
+function calcPRTotals(){
+  let sub = 0;
+  document.querySelectorAll('#pr-lines-body tr').forEach(tr=>{
+    const qty  = parseFloat(tr.querySelector('.pr-qty')?.value)||0;
+    const unit = parseFloat(tr.querySelector('.pr-unit')?.value)||0;
+    const lt   = qty*unit;
+    tr.querySelector('.pr-line-total').textContent = fmt(lt);
+    sub += lt;
+  });
+  const del = parseFloat(document.getElementById('pr-delivery').value)||0;
+  document.getElementById('pr-subtotal').textContent = fmt(sub);
+  document.getElementById('pr-total').textContent = fmt(sub+del);
+}
+
+async function savePR(){
+  const by = document.getElementById('pr-requested-by').value;
+  const reason = document.getElementById('pr-reason').value.trim();
+  if(!by||!reason){ toast('Please fill in required fields.','err'); return; }
+
+  const lines = [];
+  document.querySelectorAll('#pr-lines-body tr').forEach(tr=>{
+    const desc = tr.querySelector('.pr-desc')?.value.trim()||'';
+    const qty  = parseFloat(tr.querySelector('.pr-qty')?.value)||1;
+    const unit = parseFloat(tr.querySelector('.pr-unit')?.value)||0;
+    if(desc) lines.push({description:desc,qty,unit_price:unit,total:qty*unit});
+  });
+
+  const sub = lines.reduce((a,l)=>a+l.total,0);
+  const del = parseFloat(document.getElementById('pr-delivery').value)||0;
+  const ref = await nextRef('PRQ',  'purchase_requests');
+
+  const row = {
+    ref_number: ref,
+    requested_by: by,
+    requested_by_email: S.user.email,
+    request_date: document.getElementById('pr-date').value||today(),
+    site: document.getElementById('pr-site').value,
+    supplier: document.getElementById('pr-supplier').value.trim(),
+    items: lines,
+    delivery_cost: del,
+    subtotal: sub,
+    total: sub+del,
+    reason,
+    status: 'Pending'
+  };
+
+  const { error } = await _db.from('purchase_requests').insert(row);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`${ref} submitted successfully.`);
+  closeModal('pr-modal');
+  await sendEmail('New Purchase Request', ref, by, sub+del, 'purchase_request');
+  await loadPR(); renderPR(); renderDash(); updateBadges();
+}
+
+async function savePRFinance(id){
+  const upd = {
+    po_number: document.getElementById('pr-po').value.trim(),
+    nl_code: document.getElementById('pr-nl').value.trim(),
+    pl_account: document.getElementById('pr-pl').value.trim(),
+    payment_method: document.getElementById('pr-payment').value,
+    finance_notes: document.getElementById('pr-finance-notes').value.trim(),
+    status: 'Processed',
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await _db.from('purchase_requests').update(upd).eq('id',id);
+  if(error){ toast(error.message,'err'); return; }
+  toast('Purchase request processed.'); closeModal('pr-modal');
+  await loadPR(); renderPR(); renderDash(); updateBadges();
+}
+
+async function deletePR(id){
+  if(!confirm('Delete this request?')) return;
+  await _db.from('purchase_requests').delete().eq('id',id);
+  toast('Request deleted.'); closeModal('pr-modal');
+  await loadPR(); renderPR(); renderDash(); updateBadges();
+}
+
+// ── EXPENSE CLAIMS ────────────────────────────────────────
+function renderEX(){
+  const q   = (document.getElementById('ex-search').value||'').toLowerCase();
+  const flt = document.getElementById('ex-filter').value;
+  const rows = ALL_EX.filter(r=>{
+    if(flt && r.status!==flt) return false;
+    if(q && !(r.ref_number+r.employee_name).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('ex-tbody');
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><p>No expense claims found.</p></div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td><span class="ref">${r.ref_number}</span></td>
+    <td>${r.employee_name||'—'}</td><td>${r.claim_month||'—'}</td>
+    <td>${fmt(r.total)}</td><td>${fmt(r.total_vat)}</td>
+    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><button class="btn btn-sm btn-secondary" onclick="openEXModal('${r.id}')">View</button></td>
+  </tr>`).join('');
+}
+
+async function openEXModal(id){
+  populateStaff('ex-employee');
+  const modal  = document.getElementById('ex-modal');
+  const footer = document.getElementById('ex-modal-footer');
+  document.getElementById('ex-id').value = '';
+  document.getElementById('ex-lines-body').innerHTML = '';
+  document.getElementById('ex-finance-panel').style.display = 'none';
+  document.getElementById('ex-auth-note-group').style.display = 'none';
+  calcEXTotals();
+
+  if(!id){
+    document.getElementById('ex-modal-ref').textContent = '';
+    document.getElementById('ex-month').value = nowMonth();
+    addEXLine();
+    footer.innerHTML = `
+      <button class="btn btn-secondary" onclick="closeModal('ex-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEX()">Submit Claim</button>`;
+    modal.classList.add('open'); return;
+  }
+
+  const r = ALL_EX.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('ex-id').value = r.id;
+  document.getElementById('ex-modal-ref').textContent = r.ref_number;
+  populateStaff('ex-employee', r.employee_name);
+  document.getElementById('ex-month').value = r.claim_month||nowMonth();
+
+  const lines = r.items||[];
+  lines.forEach(()=>addEXLine());
+  const trs = document.getElementById('ex-lines-body').querySelectorAll('tr');
+  lines.forEach((ln,i)=>{
+    if(!trs[i]) return;
+    trs[i].querySelector('.ex-date').value  = ln.date||'';
+    trs[i].querySelector('.ex-desc').value  = ln.description||'';
+    trs[i].querySelector('.ex-cost').value  = ln.total_cost||0;
+    trs[i].querySelector('.ex-vat').value   = ln.vat_applicable||'N';
+    trs[i].querySelector('.ex-nlcode').value= ln.nl_code||'';
+  });
+  calcEXTotals();
+
+  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+    document.getElementById('ex-finance-panel').style.display = '';
+    document.getElementById('ex-finance-notes').value = r.finance_notes||'';
+  }
+  if(S.role==='authoriser' && r.status==='Pending'){
+    document.getElementById('ex-auth-note-group').style.display = '';
+  }
+
+  let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
+  if(S.role==='authoriser' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
+  }
+  if(S.role==='finance' && r.status==='Authorised'){
+    btns += `<button class="btn btn-primary" onclick="saveEXFinance('${r.id}')">Save & Process</button>`;
+  }
+  if(S.role==='requestor' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="deleteRecord('expense_claims','${r.id}','EX')">Delete</button>`;
+  }
+  footer.innerHTML = btns;
+  modal.classList.add('open');
+}
+
+function addEXLine(){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="ex-date" type="date" style="width:120px" oninput="calcEXTotals()"></td>
+    <td><input class="ex-desc" type="text" placeholder="Description" oninput="calcEXTotals()"></td>
+    <td><input class="ex-cost" type="number" value="0" min="0" step="0.01" style="width:80px" oninput="calcEXTotals()"></td>
+    <td><select class="ex-vat" onchange="calcEXTotals()">
+      <option value="N">N</option><option value="Y">Y</option></select></td>
+    <td class="ex-exvat-cell">£0.00</td>
+    <td class="ex-vat-cell">£0.00</td>
+    <td><input class="ex-nlcode" type="text" placeholder="Code" style="width:70px"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove();calcEXTotals()">×</button></td>`;
+  document.getElementById('ex-lines-body').appendChild(tr);
+}
+
+const VAT_RATE = 0.20;
+function calcEXTotals(){
+  let tot=0, vatTot=0;
+  document.querySelectorAll('#ex-lines-body tr').forEach(tr=>{
+    const cost = parseFloat(tr.querySelector('.ex-cost')?.value)||0;
+    const hasVat = tr.querySelector('.ex-vat')?.value==='Y';
+    const vat    = hasVat ? cost - cost/1.2 : 0;
+    const exvat  = cost - vat;
+    tr.querySelector('.ex-exvat-cell').textContent = fmt(exvat);
+    tr.querySelector('.ex-vat-cell').textContent   = fmt(vat);
+    tot += cost; vatTot += vat;
+  });
+  document.getElementById('ex-total').textContent  = fmt(tot);
+  document.getElementById('ex-vat').textContent    = fmt(vatTot);
+  document.getElementById('ex-exvat').textContent  = fmt(tot-vatTot);
+}
+
+async function saveEX(){
+  const emp = document.getElementById('ex-employee').value;
+  const mon = document.getElementById('ex-month').value;
+  if(!emp||!mon){ toast('Please fill in required fields.','err'); return; }
+
+  const lines = [];
+  document.querySelectorAll('#ex-lines-body tr').forEach(tr=>{
+    const desc = tr.querySelector('.ex-desc')?.value.trim()||'';
+    const cost = parseFloat(tr.querySelector('.ex-cost')?.value)||0;
+    const hasVat = tr.querySelector('.ex-vat')?.value==='Y';
+    const vat  = hasVat ? cost - cost/1.2 : 0;
+    if(desc||cost) lines.push({
+      date: tr.querySelector('.ex-date')?.value||'',
+      description: desc, total_cost: cost,
+      vat_applicable: hasVat?'Y':'N',
+      ex_vat: cost-vat, vat, nl_code: tr.querySelector('.ex-nlcode')?.value||''
+    });
+  });
+
+  const tot    = lines.reduce((a,l)=>a+l.total_cost,0);
+  const vatTot = lines.reduce((a,l)=>a+l.vat,0);
+  const ref    = await nextRef('EXP', 'expense_claims');
+
+  const row = {
+    ref_number: ref, employee_name: emp, employee_email: S.user.email,
+    claim_month: mon, items: lines,
+    total: tot, total_vat: vatTot, total_ex_vat: tot-vatTot, status: 'Pending'
+  };
+  const { error } = await _db.from('expense_claims').insert(row);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`${ref} submitted.`); closeModal('ex-modal');
+  await sendEmail('New Expense Claim', ref, emp, tot, 'expense_claim');
+  await loadEX(); renderEX(); renderDash(); updateBadges();
+}
+
+async function saveEXFinance(id){
+  const { error } = await _db.from('expense_claims').update({
+    finance_notes: document.getElementById('ex-finance-notes').value.trim(),
+    status: 'Processed', updated_at: new Date().toISOString()
+  }).eq('id',id);
+  if(error){ toast(error.message,'err'); return; }
+  toast('Expense claim processed.'); closeModal('ex-modal');
+  await loadEX(); renderEX(); renderDash(); updateBadges();
+}
+
+// ── MILEAGE CLAIMS ────────────────────────────────────────
+function renderMI(){
+  const q   = (document.getElementById('mi-search').value||'').toLowerCase();
+  const flt = document.getElementById('mi-filter').value;
+  const rows = ALL_MI.filter(r=>{
+    if(flt && r.status!==flt) return false;
+    if(q && !(r.ref_number+r.employee_name).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('mi-tbody');
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><p>No mileage claims found.</p></div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td><span class="ref">${r.ref_number}</span></td>
+    <td>${r.employee_name||'—'}</td><td>${r.claim_month||'—'}</td>
+    <td>${r.vehicle_type||'—'}</td>
+    <td>${r.business_mileage||0}</td>
+    <td>${fmt(r.total_claim)}</td>
+    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><button class="btn btn-sm btn-secondary" onclick="openMIModal('${r.id}')">View</button></td>
+  </tr>`).join('');
+}
+
+async function openMIModal(id){
+  populateStaff('mi-employee');
+  const modal  = document.getElementById('mi-modal');
+  const footer = document.getElementById('mi-modal-footer');
+  document.getElementById('mi-id').value = '';
+  document.getElementById('mi-journeys-body').innerHTML = '';
+  document.getElementById('mi-finance-panel').style.display = 'none';
+  document.getElementById('mi-auth-note-group').style.display = 'none';
+  calcMITotals();
+
+  if(!id){
+    document.getElementById('mi-modal-ref').textContent = '';
+    document.getElementById('mi-month').value = nowMonth();
+    document.getElementById('mi-vtype').value = '';
+    document.getElementById('mi-rate').value  = '';
+    document.getElementById('mi-start').value = '';
+    document.getElementById('mi-end').value   = '';
+    document.getElementById('mi-business').value = '';
+    document.getElementById('mi-overnights').value = 0;
+    document.getElementById('mi-reg').value = '';
+    addMIJourney();
+    footer.innerHTML = `
+      <button class="btn btn-secondary" onclick="closeModal('mi-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMI()">Submit Claim</button>`;
+    modal.classList.add('open'); return;
+  }
+
+  const r = ALL_MI.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('mi-id').value = r.id;
+  document.getElementById('mi-modal-ref').textContent = r.ref_number;
+  populateStaff('mi-employee', r.employee_name);
+  document.getElementById('mi-month').value = r.claim_month||'';
+  document.getElementById('mi-reg').value   = r.vehicle_reg||'';
+  document.getElementById('mi-vtype').value = r.mileage_rate||'';
+  document.getElementById('mi-rate').value  = r.mileage_rate||'';
+  document.getElementById('mi-start').value = r.month_start_mileage||'';
+  document.getElementById('mi-end').value   = r.month_end_mileage||'';
+  document.getElementById('mi-business').value = r.business_mileage||'';
+  document.getElementById('mi-overnights').value = r.overnight_stays||0;
+  document.getElementById('mi-commute').value = r.commute_miles||'';
+
+  const journeys = r.journeys||[];
+  journeys.forEach(()=>addMIJourney());
+  const trs = document.getElementById('mi-journeys-body').querySelectorAll('tr');
+  journeys.forEach((j,i)=>{
+    if(!trs[i]) return;
+    trs[i].querySelector('.mi-jdate').value = j.date||'';
+    trs[i].querySelector('.mi-jdesc').value = j.description||'';
+    trs[i].querySelector('.mi-jmiles').value= j.miles||0;
+  });
+  calcMITotals();
+
+  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+    document.getElementById('mi-finance-panel').style.display = '';
+    document.getElementById('mi-finance-notes').value = r.finance_notes||'';
+  }
+  if(S.role==='authoriser' && r.status==='Pending'){
+    document.getElementById('mi-auth-note-group').style.display = '';
+  }
+
+  let btns = `<button class="btn btn-secondary" onclick="closeModal('mi-modal')">Close</button>`;
+  if(S.role==='authoriser' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
+  }
+  if(S.role==='finance' && r.status==='Authorised'){
+    btns += `<button class="btn btn-primary" onclick="saveMIFinance('${r.id}')">Save & Process</button>`;
+  }
+  if(S.role==='requestor' && r.status==='Pending'){
+    btns += `<button class="btn btn-danger" onclick="deleteRecord('mileage_claims','${r.id}','MI')">Delete</button>`;
+  }
+  footer.innerHTML = btns;
+  modal.classList.add('open');
+}
+
+function updateMIRate(){
+  const v = document.getElementById('mi-vtype').value;
+  document.getElementById('mi-rate').value = v;
+  calcMITotals();
+}
+
+function addMIJourney(){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="mi-jdate" type="date" style="width:120px" oninput="calcMITotals()"></td>
+    <td><input class="mi-jdesc" type="text" placeholder="From – To / description"></td>
+    <td><input class="mi-jmiles" type="number" value="0" min="0" step="0.1" style="width:70px" oninput="calcMITotals()"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove();calcMITotals()">×</button></td>`;
+  document.getElementById('mi-journeys-body').appendChild(tr);
+}
+
+function calcMITotals(){
+  const start    = parseFloat(document.getElementById('mi-start').value)||0;
+  const end      = parseFloat(document.getElementById('mi-end').value)||0;
+  const totalMi  = Math.max(0, end-start);
+  const business = parseFloat(document.getElementById('mi-business').value)||0;
+  const rate     = parseFloat(document.getElementById('mi-rate').value)||0;
+  const nights   = parseInt(document.getElementById('mi-overnights').value)||0;
+  const mileTot  = business * rate;
+  const nightTot = nights * 35;
+  const grand    = mileTot + nightTot;
+  const priv     = Math.max(0, totalMi - business);
+
+  document.getElementById('mi-total-miles').value = totalMi;
+  document.getElementById('mi-private').value     = priv;
+  document.getElementById('mi-disp-miles').textContent = business;
+  document.getElementById('mi-disp-rate').textContent  = '£'+rate.toFixed(2);
+  document.getElementById('mi-disp-nights').textContent= nights;
+  document.getElementById('mi-mileage-total').textContent  = fmt(mileTot);
+  document.getElementById('mi-overnight-total').textContent= fmt(nightTot);
+  document.getElementById('mi-grand-total').textContent    = fmt(grand);
+}
+
+async function saveMI(){
+  const emp  = document.getElementById('mi-employee').value;
+  const mon  = document.getElementById('mi-month').value;
+  const vtype= document.getElementById('mi-vtype').options[document.getElementById('mi-vtype').selectedIndex]?.text||'';
+  const rate = parseFloat(document.getElementById('mi-rate').value)||0;
+  if(!emp||!mon||!rate){ toast('Please fill in required fields.','err'); return; }
+
+  const journeys = [];
+  document.querySelectorAll('#mi-journeys-body tr').forEach(tr=>{
+    const desc  = tr.querySelector('.mi-jdesc')?.value.trim()||'';
+    const miles = parseFloat(tr.querySelector('.mi-jmiles')?.value)||0;
+    if(desc||miles) journeys.push({
+      date: tr.querySelector('.mi-jdate')?.value||'',
+      description: desc, miles
+    });
+  });
+
+  const business = parseFloat(document.getElementById('mi-business').value)||0;
+  const nights   = parseInt(document.getElementById('mi-overnights').value)||0;
+  const totalMi  = parseFloat(document.getElementById('mi-total-miles').value)||0;
+  const mileTot  = business * rate;
+  const nightTot = nights * 35;
+  const ref      = await nextRef('MIL', 'mileage_claims');
+
+  const row = {
+    ref_number: ref, employee_name: emp, employee_email: S.user.email,
+    claim_month: mon,
+    vehicle_reg: document.getElementById('mi-reg').value.trim(),
+    vehicle_type: vtype, mileage_rate: rate,
+    month_start_mileage: parseFloat(document.getElementById('mi-start').value)||0,
+    month_end_mileage:   parseFloat(document.getElementById('mi-end').value)||0,
+    total_mileage: totalMi, business_mileage: business,
+    private_mileage: Math.max(0,totalMi-business),
+    commute_miles: parseFloat(document.getElementById('mi-commute').value)||0,
+    journeys, overnight_stays: nights, overnight_rate: 35,
+    overnight_total: nightTot, mileage_total: mileTot,
+    total_claim: mileTot+nightTot, status: 'Pending'
+  };
+  const { error } = await _db.from('mileage_claims').insert(row);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`${ref} submitted.`); closeModal('mi-modal');
+  await sendEmail('New Mileage Claim', ref, emp, mileTot+nightTot, 'mileage_claim');
+  await loadMI(); renderMI(); renderDash(); updateBadges();
+}
+
+async function saveMIFinance(id){
+  const { error } = await _db.from('mileage_claims').update({
+    finance_notes: document.getElementById('mi-finance-notes').value.trim(),
+    status: 'Processed', updated_at: new Date().toISOString()
+  }).eq('id',id);
+  if(error){ toast(error.message,'err'); return; }
+  toast('Mileage claim processed.'); closeModal('mi-modal');
+  await loadMI(); renderMI(); renderDash(); updateBadges();
+}
+
+// ── STATUS UPDATE (authoriser) ────────────────────────────
+async function updateStatus(type, id, newStatus){
+  const tables = {PR:'purchase_requests', EX:'expense_claims', MI:'mileage_claims'};
+  const notesId = {PR:'pr-auth-notes', EX:'ex-auth-notes', MI:'mi-auth-notes'};
+  const notes = document.getElementById(notesId[type])?.value||'';
+  const upd = {
+    status: newStatus,
+    authorised_by: S.name,
+    authorised_date: today(),
+    authoriser_notes: notes,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await _db.from(tables[type]).update(upd).eq('id',id);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`Request ${newStatus.toLowerCase()}.`);
+  closeModal({PR:'pr-modal',EX:'ex-modal',MI:'mi-modal'}[type]);
+  await refreshAll();
+  renderDash();
+}
+
+// ── GENERIC DELETE ────────────────────────────────────────
+async function deleteRecord(table, id, type){
+  if(!confirm('Delete this record?')) return;
+  await _db.from(table).delete().eq('id',id);
+  toast('Deleted.');
+  closeModal({PR:'pr-modal',EX:'ex-modal',MI:'mi-modal'}[type]);
+  await refreshAll();
+}
+
+// ── USERS (finance admin) ─────────────────────────────────
+function renderUsers(){
+  if(!ALL_USERS.length){ document.getElementById('user-tbody').innerHTML=`<tr><td colspan="5"><div class="empty"><p>No users found.</p></div></td></tr>`; return; }
+  document.getElementById('user-tbody').innerHTML = ALL_USERS.map(u=>`<tr>
+    <td>${u.name}</td><td>${u.email}</td>
+    <td>${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</td>
+    <td>${u.is_active?'Yes':'No'}</td>
+    <td><button class="btn btn-sm btn-secondary" onclick="openUserModal('${u.id}')">Edit</button></td>
+  </tr>`).join('');
+}
+
+function openUserModal(id){
+  const modal = document.getElementById('user-modal');
+  document.getElementById('um-id').value = '';
+  if(!id){
+    document.getElementById('user-modal-title').textContent = 'Add User';
+    document.getElementById('um-name').value = '';
+    document.getElementById('um-email').value = '';
+    document.getElementById('um-role').value = 'requestor';
+    document.getElementById('um-active').value = 'true';
+  } else {
+    const u = ALL_USERS.find(x=>x.id===id);
+    if(!u) return;
+    document.getElementById('user-modal-title').textContent = 'Edit User';
+    document.getElementById('um-id').value = u.id;
+    document.getElementById('um-name').value  = u.name;
+    document.getElementById('um-email').value = u.email;
+    document.getElementById('um-role').value  = u.role;
+    document.getElementById('um-active').value= String(u.is_active);
+  }
+  modal.classList.add('open');
+}
+
+async function saveUser(){
+  const id   = document.getElementById('um-id').value;
+  const name = document.getElementById('um-name').value.trim();
+  const email= document.getElementById('um-email').value.trim();
+  const role = document.getElementById('um-role').value;
+  const active = document.getElementById('um-active').value === 'true';
+  if(!name||!email){ toast('Name and email required.','err'); return; }
+  let error;
+  if(id){
+    ({error} = await _db.from('user_roles').update({name,email,role,is_active:active}).eq('id',id));
+  } else {
+    ({error} = await _db.from('user_roles').insert({name,email,role,is_active:active}));
+  }
+  if(error){ toast(error.message,'err'); return; }
+  toast('User saved.'); closeModal('user-modal');
+  await loadUsers(); renderUsers();
+}
+
+// ── EMAIL ─────────────────────────────────────────────────
+async function sendEmail(subject, ref, name, amount, type){
+  try {
+    await fetch('/api/send-email', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        to: FINANCE_EMAIL,
+        subject: `[MGTS Hub] ${subject} — ${ref}`,
+        html: `<p><strong>${subject}</strong></p>
+               <p><strong>Ref:</strong> ${ref}<br>
+               <strong>From:</strong> ${name}<br>
+               <strong>Amount:</strong> £${parseFloat(amount).toFixed(2)}<br>
+               <strong>Type:</strong> ${type.replace('_',' ')}</p>
+               <p>Please log in to the MGTS Hub to review.</p>
+               <hr><small>MGTS Request &amp; Expenses Hub — Built by Andy Baines</small>`
+      })
+    });
+  } catch(e){ console.warn('Email send failed:', e.message); }
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
+});
+
+// enter key on login
+document.getElementById('li-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

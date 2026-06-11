@@ -1,0 +1,22 @@
+const { Resend } = require('resend');
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { to, subject, html } = req.body;
+  if (!to || !subject || !html) return res.status(400).json({ error: 'Missing fields' });
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  try {
+    await resend.emails.send({
+      from: 'MGTS Hub <noreply@mgts.co.uk>',
+      to,
+      subject,
+      html
+    });
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('Resend error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
