@@ -722,7 +722,7 @@ let ALL_PR=[], ALL_EX=[], ALL_MI=[], ALL_USERS=[];
 
 async function refreshAll(){
   await Promise.all([loadPR(), loadEX(), loadMI(), loadUsers()]);
-  renderDash(); updateBadges();
+  renderDash(); updateBadges(); renderPR(); renderEX(); renderMI(); renderUsers();
 }
 
 async function loadPR(){
@@ -859,7 +859,7 @@ async function openPRModal(id){
 
   if(!id){
     // new
-    document.getElementById('pr-modal-title').innerHTML = 'New Purchase Request';
+    document.getElementById('pr-modal-title').innerHTML = 'New Purchase Request <span id="pr-modal-ref"></span>';
     document.getElementById('pr-modal-ref').textContent = '';
     document.getElementById('pr-date').value = today();
     document.getElementById('pr-site').value = '';
