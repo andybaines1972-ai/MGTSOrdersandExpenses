@@ -787,7 +787,12 @@ function populateStaff(selId, val=''){
 function populateAuthorisers(selId, val=''){
   const sel = document.getElementById(selId);
   if(!sel) return;
-  const auths = (ALL_USERS||[]).filter(u=>u.role==='authoriser' && u.is_active);
+  // Finance users can also authorise; exclude the current logged-in user
+  let auths = (ALL_USERS||[]).filter(u=>
+    (u.role==='authoriser'||u.role==='finance') && u.is_active && u.email!==S.user?.email
+  );
+  // CEO rule: David Bridgens' requests route to Ruth Smith only
+  if(S.name==='David Bridgens') auths = auths.filter(u=>u.name==='Ruth Smith');
   sel.innerHTML = '<option value="">— Select Authoriser —</option>' +
     auths.map(u=>`<option value="${u.email}"${u.email===val?' selected':''}>${u.name}</option>`).join('');
 }
@@ -823,9 +828,9 @@ async function initApp(user){
   document.getElementById('nav-role').textContent = S.role.charAt(0).toUpperCase()+S.role.slice(1);
 
   // show/hide UI by role
-  document.getElementById('pr-new-btn').style.display  = S.role==='requestor'?'':'none';
-  document.getElementById('ex-new-btn').style.display  = S.role==='requestor'?'':'none';
-  document.getElementById('mi-new-btn').style.display  = S.role==='requestor'?'':'none';
+  document.getElementById('pr-new-btn').style.display  = '';
+  document.getElementById('ex-new-btn').style.display  = '';
+  document.getElementById('mi-new-btn').style.display  = '';
   document.getElementById('tab-admin').style.display   = S.role==='finance'?'':'none';
 
   document.getElementById('login-view').style.display='none';
@@ -1033,12 +1038,11 @@ async function openPRModal(id){
   });
   calcPRTotals();
 
-  // readonly if not editable
-  const readOnly = !['Pending'].includes(r.status) || S.role==='requestor';
+  // request fields always readonly on existing records; only finance/auth fields are editable
   document.querySelectorAll('#pr-modal input:not([type=hidden]),#pr-modal select,#pr-modal textarea').forEach(el=>{
     if(!el.id.startsWith('pr-po')&&!el.id.startsWith('pr-nl')&&!el.id.startsWith('pr-pl')&&
        !el.id.startsWith('pr-payment')&&!el.id.startsWith('pr-finance')&&!el.id.startsWith('pr-auth')){
-      el.readOnly = readOnly; if(el.tagName==='SELECT') el.disabled = readOnly;
+      el.readOnly = true; if(el.tagName==='SELECT') el.disabled = true;
     }
   });
 
@@ -1059,14 +1063,14 @@ async function openPRModal(id){
 
   // footer buttons
   let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if(S.role==='authoriser' && r.status==='Pending' && r.requested_by_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
   if(S.role==='finance' && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="savePRFinance('${r.id}')">Save & Process</button>`;
   }
-  if(S.role==='requestor' && r.status==='Pending'){
+  if(r.requested_by_email===S.user.email && r.status==='Pending'){
     btns += `<button class="btn btn-danger" onclick="deletePR('${r.id}')">Delete</button>`;
   }
   footer.innerHTML = btns;
@@ -1249,14 +1253,14 @@ async function openEXModal(id){
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if(S.role==='authoriser' && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
   }
   if(S.role==='finance' && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="saveEXFinance('${r.id}')">Save & Process</button>`;
   }
-  if(S.role==='requestor' && r.status==='Pending'){
+  if(r.employee_email===S.user.email && r.status==='Pending'){
     btns += `<button class="btn btn-danger" onclick="deleteRecord('expense_claims','${r.id}','EX')">Delete</button>`;
   }
   footer.innerHTML = btns;
@@ -1433,14 +1437,14 @@ async function openMIModal(id){
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('mi-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if(S.role==='authoriser' && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
   }
   if(S.role==='finance' && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="saveMIFinance('${r.id}')">Save & Process</button>`;
   }
-  if(S.role==='requestor' && r.status==='Pending'){
+  if(r.employee_email===S.user.email && r.status==='Pending'){
     btns += `<button class="btn btn-danger" onclick="deleteRecord('mileage_claims','${r.id}','MI')">Delete</button>`;
   }
   footer.innerHTML = btns;
