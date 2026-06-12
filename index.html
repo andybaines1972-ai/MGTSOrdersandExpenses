@@ -26,13 +26,23 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f4;color:var(--dark
 h1,h2,h3{font-weight:600}
 
 /* ── NAV ─────────────────────────────────────────── */
-#nav{background:var(--dark);color:var(--white);display:flex;align-items:center;padding:0 20px;height:56px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.3)}
-#nav .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--orange)}
-#nav .logo span{color:var(--white);font-weight:400;font-size:13px}
+#nav{background:var(--dark);color:var(--white);display:flex;align-items:center;padding:0 24px;min-height:72px;gap:18px;position:sticky;top:0;z-index:100;box-shadow:0 3px 12px rgba(0,0,0,.45);border-bottom:4px solid var(--orange)}
+.nav-brand{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.nav-squares{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:38px}
+.nav-sq{width:16px;height:16px;border-radius:3px}
+.nav-sq.w{background:#fff}
+.nav-sq.o{background:var(--orange)}
+.nav-brand-text .brand-name{font-size:26px;font-weight:900;color:var(--orange);letter-spacing:-1.5px;line-height:1}
+.nav-brand-text .brand-full{font-size:10px;color:#aaa;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+.nav-sep{width:1px;height:40px;background:rgba(255,255,255,.18);flex-shrink:0}
+.nav-app{display:flex;flex-direction:column;gap:2px}
+.nav-app-title{font-size:15px;font-weight:700;color:var(--white);letter-spacing:.01em}
+.nav-app-sub{font-size:10px;color:#999;letter-spacing:.05em;text-transform:uppercase}
 #nav .spacer{flex:1}
-#nav .user-info{font-size:13px;color:#ccc}
-#nav .user-info strong{color:var(--orange)}
-.nav-btn{background:none;border:1px solid #555;color:#ccc;padding:5px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px;transition:.2s}
+.nav-user{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.nav-user-name{font-size:13px;font-weight:600;color:var(--white)}
+.nav-role-badge{display:inline-block;background:rgba(245,130,32,.18);border:1px solid rgba(245,130,32,.4);color:var(--orange);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:capitalize}
+.nav-btn{background:none;border:1px solid #555;color:#aaa;padding:6px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;transition:.2s;flex-shrink:0}
 .nav-btn:hover{border-color:var(--orange);color:var(--orange)}
 
 /* ── TABS ────────────────────────────────────────── */
@@ -168,6 +178,18 @@ textarea{resize:vertical;min-height:70px}
   .stats{grid-template-columns:1fr 1fr}
   #main{padding:12px}
 }
+
+/* ── ATTACHMENTS ─────────────────────────────────── */
+.attach-list{display:grid;gap:5px;margin-bottom:6px;min-height:0}
+.attach-item{display:flex;align-items:center;gap:8px;background:#f9fafb;border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:12px}
+.attach-item a{color:var(--blue);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach-item a:hover{text-decoration:underline}
+.attach-icon{font-size:15px;flex-shrink:0}
+.attach-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 3px;line-height:1;opacity:.6;flex-shrink:0}
+.attach-del:hover{opacity:1}
+.pending-file{display:flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid var(--mid);border-radius:var(--radius);padding:5px 10px;font-size:12px;margin-top:4px}
+.pending-file .pf-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pending-file .pf-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -196,9 +218,26 @@ textarea{resize:vertical;min-height:70px}
 
   <!-- NAV -->
   <div id="nav">
-    <div class="logo">MGTS <span>Request &amp; Expenses Hub</span></div>
+    <div class="nav-brand">
+      <div class="nav-squares">
+        <div class="nav-sq w"></div><div class="nav-sq o"></div>
+        <div class="nav-sq o"></div><div class="nav-sq w"></div>
+      </div>
+      <div class="nav-brand-text">
+        <div class="brand-name">mgts</div>
+        <div class="brand-full">Midland Group Training Services</div>
+      </div>
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-app">
+      <div class="nav-app-title">Request &amp; Expenses Hub</div>
+      <div class="nav-app-sub">Purchase &nbsp;·&nbsp; Expenses &nbsp;·&nbsp; Mileage</div>
+    </div>
     <div class="spacer"></div>
-    <div class="user-info">Signed in as <strong id="nav-name">—</strong> &nbsp;·&nbsp; <span id="nav-role">—</span></div>
+    <div class="nav-user">
+      <div class="nav-user-name" id="nav-name">—</div>
+      <span class="nav-role-badge" id="nav-role">—</span>
+    </div>
     <button class="nav-btn" onclick="doLogout()">Sign Out</button>
   </div>
 
@@ -344,12 +383,16 @@ textarea{resize:vertical;min-height:70px}
           <input type="text" id="pr-supplier-tel" placeholder="Supplier telephone">
         </div>
         <div class="form-group">
-          <label>Supplier Fax</label>
-          <input type="text" id="pr-supplier-fax" placeholder="Supplier fax">
+          <label>Supplier Email</label>
+          <input type="email" id="pr-supplier-email" placeholder="orders@supplier.com">
         </div>
         <div class="form-group">
           <label>Supplier Reference</label>
           <input type="text" id="pr-supplier-ref" placeholder="Supplier's quote / ref no.">
+        </div>
+        <div class="form-group full">
+          <label>Supplier Website / Product Link</label>
+          <input type="text" id="pr-supplier-link" placeholder="https://… paste Amazon, RS Components or quote link here">
         </div>
         <div class="form-group full">
           <label>Supplier Address</label>
@@ -426,6 +469,19 @@ textarea{resize:vertical;min-height:70px}
         <textarea id="pr-auth-notes" rows="2" placeholder="Optional notes for rejection reason, etc."></textarea>
       </div>
 
+      <!-- Attachments -->
+      <div style="margin-top:14px">
+        <div class="divider">Attachments &amp; Documents</div>
+        <div class="attach-list" id="pr-attach-list"></div>
+        <div id="pr-pending-files"></div>
+        <label class="btn btn-secondary btn-sm" for="pr-file-input" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:4px">
+          📎 Attach File
+        </label>
+        <input type="file" id="pr-file-input" multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+          style="display:none" onchange="handlePRFiles(this)">
+      </div>
+
     </div><!-- /modal-body -->
     <div class="modal-footer" id="pr-modal-footer"></div>
   </div>
@@ -488,6 +544,19 @@ textarea{resize:vertical;min-height:70px}
       <div class="form-group" id="ex-auth-note-group" style="margin-top:14px;display:none">
         <label>Authoriser Notes</label>
         <textarea id="ex-auth-notes" rows="2"></textarea>
+      </div>
+
+      <!-- Attachments -->
+      <div style="margin-top:14px">
+        <div class="divider">Attachments &amp; Receipts</div>
+        <div class="attach-list" id="ex-attach-list"></div>
+        <div id="ex-pending-files"></div>
+        <label class="btn btn-secondary btn-sm" for="ex-file-input" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:4px">
+          📎 Attach Receipt
+        </label>
+        <input type="file" id="ex-file-input" multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+          style="display:none" onchange="handleEXFiles(this)">
       </div>
     </div>
     <div class="modal-footer" id="ex-modal-footer"></div>
@@ -600,6 +669,19 @@ textarea{resize:vertical;min-height:70px}
       <div class="form-group" id="mi-auth-note-group" style="margin-top:14px;display:none">
         <label>Authoriser Notes</label>
         <textarea id="mi-auth-notes" rows="2"></textarea>
+      </div>
+
+      <!-- Attachments -->
+      <div style="margin-top:14px">
+        <div class="divider">Attachments</div>
+        <div class="attach-list" id="mi-attach-list"></div>
+        <div id="mi-pending-files"></div>
+        <label class="btn btn-secondary btn-sm" for="mi-file-input" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:4px">
+          📎 Attach File
+        </label>
+        <input type="file" id="mi-file-input" multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+          style="display:none" onchange="handleMIFiles(this)">
       </div>
     </div>
     <div class="modal-footer" id="mi-modal-footer"></div>
@@ -896,6 +978,9 @@ async function openPRModal(id){
   document.getElementById('pr-auth-note-group').style.display = 'none';
   document.getElementById('pr-delivery').value = 0;
   calcPRTotals();
+  STAGED.pr = [];
+  document.getElementById('pr-pending-files').innerHTML = '';
+  document.getElementById('pr-attach-list').innerHTML = '';
 
   if(!id){
     // new
@@ -906,8 +991,9 @@ async function openPRModal(id){
     document.getElementById('pr-department').value = '';
     document.getElementById('pr-supplier').value = '';
     document.getElementById('pr-supplier-tel').value = '';
-    document.getElementById('pr-supplier-fax').value = '';
+    document.getElementById('pr-supplier-email').value = '';
     document.getElementById('pr-supplier-ref').value = '';
+    document.getElementById('pr-supplier-link').value = '';
     document.getElementById('pr-supplier-address').value = '';
     document.getElementById('pr-reason').value = '';
     populateAuthorisers('pr-authoriser');
@@ -929,8 +1015,9 @@ async function openPRModal(id){
   document.getElementById('pr-department').value = r.department||'';
   document.getElementById('pr-supplier').value = r.supplier||'';
   document.getElementById('pr-supplier-tel').value = r.supplier_tel||'';
-  document.getElementById('pr-supplier-fax').value = r.supplier_fax||'';
+  document.getElementById('pr-supplier-email').value = r.supplier_email||'';
   document.getElementById('pr-supplier-ref').value = r.supplier_ref||'';
+  document.getElementById('pr-supplier-link').value = r.supplier_link||'';
   document.getElementById('pr-supplier-address').value = r.supplier_address||'';
   document.getElementById('pr-reason').value = r.reason||'';
   document.getElementById('pr-delivery').value = r.delivery_cost||0;
@@ -984,6 +1071,7 @@ async function openPRModal(id){
     btns += `<button class="btn btn-danger" onclick="deletePR('${r.id}')">Delete</button>`;
   }
   footer.innerHTML = btns;
+  loadAttachments('purchase', r.id, 'pr-attach-list');
   modal.classList.add('open');
 }
 
@@ -1041,8 +1129,9 @@ async function savePR(){
     authoriser_email: authEmail,
     supplier: document.getElementById('pr-supplier').value.trim(),
     supplier_tel: document.getElementById('pr-supplier-tel').value.trim(),
-    supplier_fax: document.getElementById('pr-supplier-fax').value.trim(),
+    supplier_email: document.getElementById('pr-supplier-email').value.trim(),
     supplier_ref: document.getElementById('pr-supplier-ref').value.trim(),
+    supplier_link: document.getElementById('pr-supplier-link').value.trim(),
     supplier_address: document.getElementById('pr-supplier-address').value.trim(),
     items: lines,
     delivery_cost: del,
@@ -1052,8 +1141,9 @@ async function savePR(){
     status: 'Pending'
   };
 
-  const { error } = await _db.from('purchase_requests').insert(row);
+  const { data: ins, error } = await _db.from('purchase_requests').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
+  await uploadStagedFiles('pr', ins.id, 'purchase');
   toast(`${ref} submitted successfully.`);
   closeModal('pr-modal');
   if(authEmail) await sendEmail('Purchase Request Pending Your Approval', ref, by, sub+del, 'purchase_request', authEmail);
@@ -1113,6 +1203,9 @@ async function openEXModal(id){
   document.getElementById('ex-finance-panel').style.display = 'none';
   document.getElementById('ex-auth-note-group').style.display = 'none';
   calcEXTotals();
+  STAGED.ex = [];
+  document.getElementById('ex-pending-files').innerHTML = '';
+  document.getElementById('ex-attach-list').innerHTML = '';
 
   if(!id){
     document.getElementById('ex-modal-ref').textContent = '';
@@ -1168,6 +1261,7 @@ async function openEXModal(id){
     btns += `<button class="btn btn-danger" onclick="deleteRecord('expense_claims','${r.id}','EX')">Delete</button>`;
   }
   footer.innerHTML = btns;
+  loadAttachments('expense', r.id, 'ex-attach-list');
   modal.classList.add('open');
 }
 
@@ -1234,8 +1328,9 @@ async function saveEX(){
     department: document.getElementById('ex-department').value.trim(),
     total: tot, total_vat: vatTot, total_ex_vat: tot-vatTot, status: 'Pending'
   };
-  const { error } = await _db.from('expense_claims').insert(row);
+  const { data: ins, error } = await _db.from('expense_claims').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
+  await uploadStagedFiles('ex', ins.id, 'expense');
   toast(`${ref} submitted.`); closeModal('ex-modal');
   if(authEmail) await sendEmail('Expense Claim Pending Your Approval', ref, emp, tot, 'expense_claim', authEmail);
   await sendEmail('New Expense Claim Submitted', ref, emp, tot, 'expense_claim', FINANCE_EMAIL);
@@ -1283,6 +1378,9 @@ async function openMIModal(id){
   document.getElementById('mi-finance-panel').style.display = 'none';
   document.getElementById('mi-auth-note-group').style.display = 'none';
   calcMITotals();
+  STAGED.mi = [];
+  document.getElementById('mi-pending-files').innerHTML = '';
+  document.getElementById('mi-attach-list').innerHTML = '';
 
   if(!id){
     document.getElementById('mi-modal-ref').textContent = '';
@@ -1347,6 +1445,7 @@ async function openMIModal(id){
     btns += `<button class="btn btn-danger" onclick="deleteRecord('mileage_claims','${r.id}','MI')">Delete</button>`;
   }
   footer.innerHTML = btns;
+  loadAttachments('mileage', r.id, 'mi-attach-list');
   modal.classList.add('open');
 }
 
@@ -1426,8 +1525,9 @@ async function saveMI(){
     overnight_total: nightTot, mileage_total: mileTot,
     total_claim: mileTot+nightTot, status: 'Pending'
   };
-  const { error } = await _db.from('mileage_claims').insert(row);
+  const { data: ins, error } = await _db.from('mileage_claims').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
+  await uploadStagedFiles('mi', ins.id, 'mileage');
   toast(`${ref} submitted.`); closeModal('mi-modal');
   await sendEmail('New Mileage Claim', ref, emp, mileTot+nightTot, 'mileage_claim');
   await loadMI(); renderMI(); renderDash(); updateBadges();
@@ -1645,8 +1745,10 @@ function printPO(){
     <div class="ref-row">
       <div class="ref-cell"><span class="lbl">Your Reference</span>${r.supplier_ref||''}</div>
       <div class="ref-cell"><span class="lbl">Supplier Tel</span>${r.supplier_tel||''}</div>
-      <div class="ref-cell"><span class="lbl">Supplier Fax</span>${r.supplier_fax||''}</div>
+      <div class="ref-cell"><span class="lbl">Supplier Email</span>${r.supplier_email||''}</div>
     </div>
+    ${r.supplier_link?`<div style="font-size:10px;margin:4px 0;color:#555"><strong>Link/Ref:</strong> <a href="${r.supplier_link}" style="color:#2563eb">${r.supplier_link}</a></div>`:''}
+
 
     <table class="items">
       <thead><tr>
@@ -1668,6 +1770,122 @@ function printPO(){
     <br><button class="no-print" onclick="window.print()">🖨 Print / Save as PDF</button>
   </div></body></html>`);
   w.document.close();
+}
+
+// ── ATTACHMENTS ───────────────────────────────────────────
+const STAGED = { pr:[], ex:[], mi:[] };
+const BUCKET  = 'mgts-attachments';
+
+function fileIcon(name){
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼';
+  if(ext==='pdf') return '📄';
+  if(['doc','docx'].includes(ext)) return '📝';
+  if(['xls','xlsx','csv'].includes(ext)) return '📊';
+  return '📎';
+}
+
+async function loadAttachments(requestType, requestId, listId){
+  const el = document.getElementById(listId);
+  if(!el) return;
+  el.innerHTML = '<div style="font-size:12px;color:var(--grey)">Loading…</div>';
+  const { data } = await _db.from('request_attachments')
+    .select('*').eq('request_id', requestId).eq('request_type', requestType)
+    .order('uploaded_at');
+  const items = data||[];
+  if(!items.length){ el.innerHTML='<div style="font-size:12px;color:var(--grey);font-style:italic">No attachments yet.</div>'; return; }
+  el.innerHTML = items.map(a=>{
+    const { data: ud } = _db.storage.from(BUCKET).getPublicUrl(a.file_path);
+    return `<div class="attach-item">
+      <span class="attach-icon">${fileIcon(a.file_name)}</span>
+      <a href="${ud.publicUrl}" target="_blank" rel="noopener">${a.file_name}</a>
+      <span style="font-size:11px;color:var(--grey);white-space:nowrap">${(a.uploaded_at||'').slice(0,10)}</span>
+      <button class="attach-del" onclick="deleteAttachment('${a.id}','${a.file_path}','${requestType}','${requestId}','${listId}')" title="Remove">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteAttachment(attachId, filePath, requestType, requestId, listId){
+  if(!confirm('Remove this attachment?')) return;
+  await _db.storage.from(BUCKET).remove([filePath]);
+  await _db.from('request_attachments').delete().eq('id', attachId);
+  toast('Attachment removed.');
+  loadAttachments(requestType, requestId, listId);
+}
+
+async function uploadOneFile(requestType, requestId, file){
+  const safe = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const path = `${requestType}/${requestId}/${safe}`;
+  const { error } = await _db.storage.from(BUCKET).upload(path, file);
+  if(error){ toast(`Upload failed: ${error.message}`,'err'); return null; }
+  await _db.from('request_attachments').insert({
+    request_id: requestId, request_type: requestType,
+    file_name: file.name, file_path: path, uploaded_by: S.name
+  });
+  return path;
+}
+
+async function uploadStagedFiles(type, requestId, requestType){
+  if(!STAGED[type].length) return;
+  let ok = 0;
+  for(const f of STAGED[type]){ if(await uploadOneFile(requestType, requestId, f)) ok++; }
+  STAGED[type] = [];
+  if(ok) toast(`${ok} attachment(s) uploaded.`);
+}
+
+function renderPendingFiles(type, pendingId){
+  const el = document.getElementById(pendingId);
+  if(!el) return;
+  el.innerHTML = STAGED[type].map((f,i)=>`
+    <div class="pending-file">
+      <span class="attach-icon">${fileIcon(f.name)}</span>
+      <span class="pf-name">${f.name} (${(f.size/1024).toFixed(0)} KB)</span>
+      <button class="pf-del" onclick="removeStagedFile('${type}',${i},'${pendingId}')">×</button>
+    </div>`).join('');
+}
+
+function removeStagedFile(type, idx, pendingId){
+  STAGED[type].splice(idx, 1);
+  renderPendingFiles(type, pendingId);
+}
+
+async function handlePRFiles(input){
+  const files = Array.from(input.files); input.value='';
+  if(!files.length) return;
+  const existId = document.getElementById('pr-id').value;
+  if(existId){
+    for(const f of files) await uploadOneFile('purchase', existId, f);
+    loadAttachments('purchase', existId, 'pr-attach-list');
+  } else {
+    STAGED.pr.push(...files);
+    renderPendingFiles('pr','pr-pending-files');
+  }
+}
+
+async function handleEXFiles(input){
+  const files = Array.from(input.files); input.value='';
+  if(!files.length) return;
+  const existId = document.getElementById('ex-id').value;
+  if(existId){
+    for(const f of files) await uploadOneFile('expense', existId, f);
+    loadAttachments('expense', existId, 'ex-attach-list');
+  } else {
+    STAGED.ex.push(...files);
+    renderPendingFiles('ex','ex-pending-files');
+  }
+}
+
+async function handleMIFiles(input){
+  const files = Array.from(input.files); input.value='';
+  if(!files.length) return;
+  const existId = document.getElementById('mi-id').value;
+  if(existId){
+    for(const f of files) await uploadOneFile('mileage', existId, f);
+    loadAttachments('mileage', existId, 'mi-attach-list');
+  } else {
+    STAGED.mi.push(...files);
+    renderPendingFiles('mi','mi-pending-files');
+  }
 }
 
 // ── MODAL HELPERS ─────────────────────────────────────────
