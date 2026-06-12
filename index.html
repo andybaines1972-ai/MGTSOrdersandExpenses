@@ -325,14 +325,35 @@ textarea{resize:vertical;min-height:70px}
         </div>
         <div class="form-group">
           <label>Site</label>
-          <select id="pr-site">
-            <option value="">— Select —</option>
-            <option>COV</option><option>WSB</option><option>Other</option>
-          </select>
+          <input type="text" id="pr-site" value="Coventry" readonly style="background:#f5f5f5;color:#666">
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="pr-department" placeholder="e.g. Engineering, Admin">
+        </div>
+        <div class="form-group">
+          <label>Authoriser *</label>
+          <select id="pr-authoriser"><option value="">— Select Authoriser —</option></select>
         </div>
         <div class="form-group">
           <label>Supplier</label>
           <input type="text" id="pr-supplier" placeholder="Supplier name">
+        </div>
+        <div class="form-group">
+          <label>Supplier Tel</label>
+          <input type="text" id="pr-supplier-tel" placeholder="Supplier telephone">
+        </div>
+        <div class="form-group">
+          <label>Supplier Fax</label>
+          <input type="text" id="pr-supplier-fax" placeholder="Supplier fax">
+        </div>
+        <div class="form-group">
+          <label>Supplier Reference</label>
+          <input type="text" id="pr-supplier-ref" placeholder="Supplier's quote / ref no.">
+        </div>
+        <div class="form-group full">
+          <label>Supplier Address</label>
+          <textarea id="pr-supplier-address" rows="2" placeholder="Supplier address for PO"></textarea>
         </div>
         <div class="form-group full">
           <label>Reason for Request *</label>
@@ -393,6 +414,9 @@ textarea{resize:vertical;min-height:70px}
             <label>Finance Notes</label>
             <textarea id="pr-finance-notes" rows="2"></textarea>
           </div>
+          <div class="form-group full">
+            <button class="btn btn-secondary" type="button" onclick="printPO()" style="width:auto">🖨 Print / Save PO</button>
+          </div>
         </div>
       </div>
 
@@ -425,6 +449,14 @@ textarea{resize:vertical;min-height:70px}
         <div class="form-group">
           <label>Claim Month *</label>
           <input type="month" id="ex-month">
+        </div>
+        <div class="form-group">
+          <label>Authoriser *</label>
+          <select id="ex-authoriser"><option value="">— Select Authoriser —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="ex-department" placeholder="e.g. Engineering, Admin">
         </div>
         <div class="divider">Expense Lines</div>
       </div>
@@ -489,7 +521,7 @@ textarea{resize:vertical;min-height:70px}
           <label>Vehicle Type *</label>
           <select id="mi-vtype" onchange="updateMIRate()">
             <option value="">— Select —</option>
-            <option value="0.45">Own Car (up to 10,000 miles) — £0.45/mile</option>
+            <option value="0.55">Own Car (up to 10,000 miles) — £0.55/mile</option>
             <option value="0.25">Own Car (over 10,000 miles) — £0.25/mile</option>
             <option value="0.11">Company Car Diesel ≤1600cc — £0.11/mile</option>
             <option value="0.13">Company Car Diesel 1601–2000cc — £0.13/mile</option>
@@ -628,7 +660,7 @@ textarea{resize:vertical;min-height:70px}
 
 const SUPABASE_URL  = 'https://dezhhevqmskbtxmunuem.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlemhoZXZxbXNrYnR4bXVudWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODk2MDIsImV4cCI6MjA5Njc2NTYwMn0.rCDo4GiV83SxDGngnhIqCjOpLftDg8_NmiWmfpX0rwQ';
-const FINANCE_EMAIL = 'andybaines1972@gmail.co.uk';
+const FINANCE_EMAIL = 'accounts@mgts.co.uk';
 
 const _db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -668,6 +700,14 @@ function populateStaff(selId, val=''){
   const sel = document.getElementById(selId);
   sel.innerHTML = '<option value="">— Select —</option>' +
     STAFF.map(n=>`<option${n===val?' selected':''}>${n}</option>`).join('');
+}
+
+function populateAuthorisers(selId, val=''){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  const auths = (ALL_USERS||[]).filter(u=>u.role==='authoriser' && u.is_active);
+  sel.innerHTML = '<option value="">— Select Authoriser —</option>' +
+    auths.map(u=>`<option value="${u.email}"${u.email===val?' selected':''}>${u.name}</option>`).join('');
 }
 
 // ── AUTH ──────────────────────────────────────────────────
@@ -862,9 +902,15 @@ async function openPRModal(id){
     document.getElementById('pr-modal-title').innerHTML = 'New Purchase Request <span id="pr-modal-ref"></span>';
     document.getElementById('pr-modal-ref').textContent = '';
     document.getElementById('pr-date').value = today();
-    document.getElementById('pr-site').value = '';
+    document.getElementById('pr-site').value = 'Coventry';
+    document.getElementById('pr-department').value = '';
     document.getElementById('pr-supplier').value = '';
+    document.getElementById('pr-supplier-tel').value = '';
+    document.getElementById('pr-supplier-fax').value = '';
+    document.getElementById('pr-supplier-ref').value = '';
+    document.getElementById('pr-supplier-address').value = '';
     document.getElementById('pr-reason').value = '';
+    populateAuthorisers('pr-authoriser');
     addPRLine();
     footer.innerHTML = `
       <button class="btn btn-secondary" onclick="closeModal('pr-modal')">Cancel</button>
@@ -877,9 +923,15 @@ async function openPRModal(id){
   document.getElementById('pr-id').value = r.id;
   document.getElementById('pr-modal-ref').textContent = r.ref_number;
   populateStaff('pr-requested-by', r.requested_by);
+  populateAuthorisers('pr-authoriser', r.authoriser_email||'');
   document.getElementById('pr-date').value = r.request_date||today();
-  document.getElementById('pr-site').value = r.site||'';
+  document.getElementById('pr-site').value = r.site||'Coventry';
+  document.getElementById('pr-department').value = r.department||'';
   document.getElementById('pr-supplier').value = r.supplier||'';
+  document.getElementById('pr-supplier-tel').value = r.supplier_tel||'';
+  document.getElementById('pr-supplier-fax').value = r.supplier_fax||'';
+  document.getElementById('pr-supplier-ref').value = r.supplier_ref||'';
+  document.getElementById('pr-supplier-address').value = r.supplier_address||'';
   document.getElementById('pr-reason').value = r.reason||'';
   document.getElementById('pr-delivery').value = r.delivery_cost||0;
 
@@ -978,13 +1030,20 @@ async function savePR(){
   const del = parseFloat(document.getElementById('pr-delivery').value)||0;
   const ref = await nextRef('PRQ',  'purchase_requests');
 
+  const authEmail = document.getElementById('pr-authoriser').value;
   const row = {
     ref_number: ref,
     requested_by: by,
     requested_by_email: S.user.email,
     request_date: document.getElementById('pr-date').value||today(),
-    site: document.getElementById('pr-site').value,
+    site: document.getElementById('pr-site').value||'Coventry',
+    department: document.getElementById('pr-department').value.trim(),
+    authoriser_email: authEmail,
     supplier: document.getElementById('pr-supplier').value.trim(),
+    supplier_tel: document.getElementById('pr-supplier-tel').value.trim(),
+    supplier_fax: document.getElementById('pr-supplier-fax').value.trim(),
+    supplier_ref: document.getElementById('pr-supplier-ref').value.trim(),
+    supplier_address: document.getElementById('pr-supplier-address').value.trim(),
     items: lines,
     delivery_cost: del,
     subtotal: sub,
@@ -997,7 +1056,8 @@ async function savePR(){
   if(error){ toast(error.message,'err'); return; }
   toast(`${ref} submitted successfully.`);
   closeModal('pr-modal');
-  await sendEmail('New Purchase Request', ref, by, sub+del, 'purchase_request');
+  if(authEmail) await sendEmail('Purchase Request Pending Your Approval', ref, by, sub+del, 'purchase_request', authEmail);
+  await sendEmail('New Purchase Request Submitted', ref, by, sub+del, 'purchase_request', FINANCE_EMAIL);
   await loadPR(); renderPR(); renderDash(); updateBadges();
 }
 
@@ -1057,6 +1117,8 @@ async function openEXModal(id){
   if(!id){
     document.getElementById('ex-modal-ref').textContent = '';
     document.getElementById('ex-month').value = nowMonth();
+    document.getElementById('ex-department').value = '';
+    populateAuthorisers('ex-authoriser');
     addEXLine();
     footer.innerHTML = `
       <button class="btn btn-secondary" onclick="closeModal('ex-modal')">Cancel</button>
@@ -1069,6 +1131,8 @@ async function openEXModal(id){
   document.getElementById('ex-id').value = r.id;
   document.getElementById('ex-modal-ref').textContent = r.ref_number;
   populateStaff('ex-employee', r.employee_name);
+  populateAuthorisers('ex-authoriser', r.authoriser_email||'');
+  document.getElementById('ex-department').value = r.department||'';
   document.getElementById('ex-month').value = r.claim_month||nowMonth();
 
   const lines = r.items||[];
@@ -1162,15 +1226,19 @@ async function saveEX(){
   const vatTot = lines.reduce((a,l)=>a+l.vat,0);
   const ref    = await nextRef('EXP', 'expense_claims');
 
+  const authEmail = document.getElementById('ex-authoriser').value;
   const row = {
     ref_number: ref, employee_name: emp, employee_email: S.user.email,
     claim_month: mon, items: lines,
+    authoriser_email: authEmail,
+    department: document.getElementById('ex-department').value.trim(),
     total: tot, total_vat: vatTot, total_ex_vat: tot-vatTot, status: 'Pending'
   };
   const { error } = await _db.from('expense_claims').insert(row);
   if(error){ toast(error.message,'err'); return; }
   toast(`${ref} submitted.`); closeModal('ex-modal');
-  await sendEmail('New Expense Claim', ref, emp, tot, 'expense_claim');
+  if(authEmail) await sendEmail('Expense Claim Pending Your Approval', ref, emp, tot, 'expense_claim', authEmail);
+  await sendEmail('New Expense Claim Submitted', ref, emp, tot, 'expense_claim', FINANCE_EMAIL);
   await loadEX(); renderEX(); renderDash(); updateBadges();
 }
 
@@ -1456,24 +1524,150 @@ async function saveUser(){
 }
 
 // ── EMAIL ─────────────────────────────────────────────────
-async function sendEmail(subject, ref, name, amount, type){
+async function sendEmail(subject, ref, name, amount, type, to=FINANCE_EMAIL){
   try {
     await fetch('/api/send-email', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        to: FINANCE_EMAIL,
+        to,
         subject: `[MGTS Hub] ${subject} — ${ref}`,
         html: `<p><strong>${subject}</strong></p>
                <p><strong>Ref:</strong> ${ref}<br>
                <strong>From:</strong> ${name}<br>
                <strong>Amount:</strong> £${parseFloat(amount).toFixed(2)}<br>
-               <strong>Type:</strong> ${type.replace('_',' ')}</p>
-               <p>Please log in to the MGTS Hub to review.</p>
-               <hr><small>MGTS Request &amp; Expenses Hub — Built by Andy Baines</small>`
+               <strong>Type:</strong> ${type.replace(/_/g,' ')}</p>
+               <p>Please log in to the <a href="https://mgts-request-hub.vercel.app">MGTS Hub</a> to review.</p>
+               <hr><small>MGTS Request &amp; Expenses Hub</small>`
       })
     });
   } catch(e){ console.warn('Email send failed:', e.message); }
+}
+
+// ── PO PRINT ──────────────────────────────────────────────
+function printPO(){
+  const id = document.getElementById('pr-id').value;
+  const r  = ALL_PR.find(x=>x.id===id);
+  if(!r){ toast('Save the record first.','err'); return; }
+
+  const lines = (r.items||[]).map(l=>`
+    <tr>
+      <td>${r.ref_number}</td>
+      <td>${r.supplier_ref||''}</td>
+      <td>${l.description||''}</td>
+      <td>${r.request_date||''}</td>
+      <td style="text-align:right">${parseFloat(l.qty||1).toFixed(0)}</td>
+      <td style="text-align:right">£${parseFloat(l.unit_price||0).toFixed(2)}</td>
+      <td style="text-align:right">£${parseFloat(l.total||0).toFixed(2)}</td>
+    </tr>`).join('');
+
+  const addrLines = (r.supplier_address||'').split('\n').map(l=>`<div>${l}</div>`).join('');
+
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>PO ${r.po_number||r.ref_number}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px;color:#000}
+    .po-wrap{max-width:800px;margin:0 auto}
+    .po-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+    .po-title{font-size:28px;font-weight:900;letter-spacing:-1px;margin:4px 0}
+    .logo-box{display:flex;align-items:center;gap:10px}
+    .logo-squares{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:40px}
+    .logo-sq{width:17px;height:17px;background:#f58220;border-radius:2px}
+    .logo-sq.dark{background:#231f20}
+    .mgts-text{font-size:26px;font-weight:900;color:#f58220;letter-spacing:-1px}
+    .mgts-sub{font-size:9px;color:#231f20}
+    .po-meta{text-align:right;font-size:11px}
+    .po-meta table{border-collapse:collapse;margin-left:auto}
+    .po-meta td{padding:2px 6px;border:1px solid #999}
+    .po-meta .label{font-weight:bold;background:#f5f5f5}
+    .contact-box{border:1px solid #999;padding:6px 10px;font-size:10px;min-width:180px}
+    .two-col{display:flex;gap:20px;margin:12px 0}
+    .two-col>div{flex:1}
+    .section-title{font-weight:bold;font-size:11px;border-bottom:1px solid #333;padding-bottom:2px;margin-bottom:4px}
+    .ref-row{display:flex;gap:0;border:1px solid #999;margin:10px 0}
+    .ref-cell{flex:1;padding:4px 8px;border-right:1px solid #999;font-size:10px}
+    .ref-cell:last-child{border-right:none}
+    .ref-cell .lbl{font-weight:bold;display:block;font-size:9px}
+    table.items{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}
+    table.items th{background:#231f20;color:#fff;padding:4px 6px;text-align:left;border:1px solid #555}
+    table.items td{padding:3px 6px;border:1px solid #ccc;vertical-align:top}
+    .totals-box{float:right;border:1px solid #999;padding:6px 12px;min-width:200px;margin-top:8px;font-size:11px}
+    .totals-box .t-row{display:flex;justify-content:space-between;padding:2px 0}
+    .totals-box .t-row.bold{font-weight:bold;border-top:1px solid #999;margin-top:4px;padding-top:4px}
+    .signed{margin-top:60px;font-size:11px}
+    .signed-line{border-bottom:1px solid #000;width:260px;display:inline-block;margin-left:8px}
+    .comments{margin-top:16px;font-size:11px}
+    @media print{body{padding:10px}.no-print{display:none}}
+  </style></head><body>
+  <div class="po-wrap">
+    <div class="po-header">
+      <div>
+        <div class="logo-box">
+          <div class="logo-squares">
+            <div class="logo-sq dark"></div><div class="logo-sq"></div>
+            <div class="logo-sq"></div><div class="logo-sq dark"></div>
+          </div>
+          <div>
+            <div class="mgts-text">mgts</div>
+            <div class="mgts-sub">business and training services ltd</div>
+          </div>
+        </div>
+        <div class="po-title">PURCHASE ORDER</div>
+      </div>
+      <div>
+        <div class="contact-box">
+          <div><strong>ORDER NUMBER</strong> ${r.po_number||r.ref_number}</div>
+          <div><strong>DATE</strong> ${r.request_date||''}</div>
+          <br>
+          <div><strong>Tel:</strong> 02476 630333</div>
+          <div><strong>Fax:</strong> 02476 525029</div>
+          <div><strong>E-mail:</strong> rsmith@mgts.co.uk</div>
+          <div><strong>VAT Reg No. GB</strong> 747892279</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-title">SUPPLIER DETAILS</div>
+        <strong>${r.supplier||''}</strong><br>${addrLines}
+      </div>
+      <div>
+        <div class="section-title">DELIVER TO:</div>
+        <div>MGTS Coventry</div>
+        <div>Gulson Road</div>
+        <div>Coventry</div>
+        <div>CV1 2JG</div>
+        ${r.department ? `<div><em>${r.department}</em></div>` : ''}
+      </div>
+    </div>
+
+    <div class="ref-row">
+      <div class="ref-cell"><span class="lbl">Your Reference</span>${r.supplier_ref||''}</div>
+      <div class="ref-cell"><span class="lbl">Supplier Tel</span>${r.supplier_tel||''}</div>
+      <div class="ref-cell"><span class="lbl">Supplier Fax</span>${r.supplier_fax||''}</div>
+    </div>
+
+    <table class="items">
+      <thead><tr>
+        <th>OUR REF.</th><th>YOUR REF.</th><th>DESCRIPTION</th>
+        <th>DATE REQ.</th><th>QTY</th><th>UNIT PRICE</th><th>TOTAL</th>
+      </tr></thead>
+      <tbody>${lines}</tbody>
+    </table>
+    <div style="overflow:hidden">
+      <div class="totals-box">
+        <div class="t-row"><span>Total Net Amount</span><span>£${parseFloat(r.subtotal||0).toFixed(2)}</span></div>
+        ${r.delivery_cost>0?`<div class="t-row"><span>Delivery</span><span>£${parseFloat(r.delivery_cost).toFixed(2)}</span></div>`:''}
+        <div class="t-row bold"><span>Total Order</span><span>£${parseFloat(r.total||0).toFixed(2)}</span></div>
+      </div>
+    </div>
+    <div style="clear:both;margin-top:12px;font-style:italic;font-size:10px">See Lines for Delivery Date Required</div>
+    <div class="comments"><strong>ORDER COMMENTS:</strong><br>${r.reason||''}</div>
+    <div class="signed">SIGNED <span class="signed-line">&nbsp;</span></div>
+    <br><button class="no-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div></body></html>`);
+  w.document.close();
 }
 
 // ── MODAL HELPERS ─────────────────────────────────────────
