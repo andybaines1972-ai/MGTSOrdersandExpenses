@@ -387,7 +387,7 @@ textarea{resize:vertical;min-height:70px}
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th><th></th><th></th></tr></thead>
           <tbody id="user-tbody"></tbody>
         </table>
       </div>
@@ -1656,14 +1656,23 @@ async function deleteRecord(table, id, type){
 
 // ── USERS (finance admin) ─────────────────────────────────
 function renderUsers(){
-  if(!ALL_USERS.length){ document.getElementById('user-tbody').innerHTML=`<tr><td colspan="6"><div class="empty"><p>No users found.</p></div></td></tr>`; return; }
+  if(!ALL_USERS.length){ document.getElementById('user-tbody').innerHTML=`<tr><td colspan="7"><div class="empty"><p>No users found.</p></div></td></tr>`; return; }
   document.getElementById('user-tbody').innerHTML = ALL_USERS.map(u=>`<tr>
     <td>${u.name}</td><td>${u.email}</td>
     <td>${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</td>
     <td>${u.is_active?'Yes':'No'}</td>
     <td><button class="btn btn-sm btn-secondary" onclick="openUserModal('${u.id}')">Edit</button></td>
     <td><button class="btn btn-sm btn-secondary" onclick="sendInvite('${u.name.replace(/'/g,"\\'")}','${u.email}','${u.role}')" title="Send invite email so they can set a password">✉ Invite</button></td>
+    <td><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Delete</button></td>
   </tr>`).join('');
+}
+
+async function deleteUser(id, name){
+  if(!confirm(`Remove ${name} from the hub?\n\nThis removes their role and access. Their Supabase login account is not deleted.`)) return;
+  const {error} = await _db.from('user_roles').delete().eq('id', id);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`${name} removed.`);
+  await loadUsers(); renderUsers();
 }
 
 async function sendInvite(name, email, role){
