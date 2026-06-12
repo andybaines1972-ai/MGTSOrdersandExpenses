@@ -173,10 +173,33 @@ textarea{resize:vertical;min-height:70px}
 
 /* ── RESPONSIVE ──────────────────────────────────── */
 @media(max-width:600px){
+  /* ── nav ── */
+  #nav{padding:0 12px;min-height:56px;gap:10px;flex-wrap:nowrap}
+  .nav-app,.nav-sep{display:none}
+  .nav-brand-text .brand-full{display:none}
+  .nav-brand-text .brand-name{font-size:20px}
+  .nav-squares{width:28px}
+  .nav-sq{width:12px;height:12px}
+  .nav-user-name{display:none}
+  .nav-btn{padding:5px 10px;font-size:11px}
+  /* ── tabs ── */
+  #tabs{padding:0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  .tab{padding:12px 14px;font-size:13px}
+  /* ── forms & grids ── */
   .form-grid{grid-template-columns:1fr}
   .form-grid.cols3{grid-template-columns:1fr}
   .stats{grid-template-columns:1fr 1fr}
   #main{padding:12px}
+  /* ── toolbar ── */
+  .toolbar{flex-wrap:wrap;gap:6px}
+  .toolbar h2{width:100%;margin-bottom:2px}
+  /* ── tables ── */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* ── modals ── */
+  .modal{width:96vw;max-height:92vh}
+  /* ── stat cards ── */
+  .stat-card h3{font-size:24px}
 }
 
 /* ── CLICKABLE STAT CARDS ────────────────────────── */
