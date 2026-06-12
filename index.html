@@ -866,7 +866,6 @@ async function loadMI(){
   ALL_MI = data||[];
 }
 async function loadUsers(){
-  if(S.role!=='finance') return;
   const { data } = await _db.from('user_roles').select('*').order('name');
   ALL_USERS = data||[];
 }
