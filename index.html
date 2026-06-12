@@ -1709,125 +1709,194 @@ function printPO(){
   const r  = ALL_PR.find(x=>x.id===id);
   if(!r){ toast('Save the record first.','err'); return; }
 
+  const fmtD = s => {
+    if(!s) return '';
+    const d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString('en-GB');
+  };
+  const fmtDT = s => {
+    const d = s ? new Date(s) : new Date();
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('en-GB') + ' - ' + d.toTimeString().slice(0,8);
+  };
+
+  const poNum     = r.po_number || r.ref_number;
+  const poDate    = fmtD(r.request_date) || fmtD(new Date());
+  const createdAt = fmtDT(r.created_at);
+  const createdBy = (r.requested_by || 'SYSTEM').toUpperCase();
+  const amendedAt = fmtDT(new Date());
+  const amendedBy = (S.name || 'FINANCE').toUpperCase();
+
+  const addrLines = (r.supplier_address||'').split('\n').filter(l=>l.trim()).map(l=>`<div>${l}</div>`).join('');
+
   const lines = (r.items||[]).map(l=>`
     <tr>
       <td>${r.ref_number}</td>
       <td>${r.supplier_ref||''}</td>
       <td>${l.description||''}</td>
-      <td>${r.request_date||''}</td>
-      <td style="text-align:right">${parseFloat(l.qty||1).toFixed(0)}</td>
-      <td style="text-align:right">£${parseFloat(l.unit_price||0).toFixed(2)}</td>
-      <td style="text-align:right">£${parseFloat(l.total||0).toFixed(2)}</td>
+      <td style="text-align:center">${fmtD(r.request_date)}</td>
+      <td style="text-align:right">${parseFloat(l.qty||1).toFixed(2)}</td>
+      <td style="text-align:right">${parseFloat(l.unit_price||0).toFixed(2)}</td>
+      <td style="text-align:right">${parseFloat(l.total||0).toFixed(2)}</td>
     </tr>`).join('');
 
-  const addrLines = (r.supplier_address||'').split('\n').map(l=>`<div>${l}</div>`).join('');
+  const net   = parseFloat(r.subtotal||r.total||0);
+  const deliv = parseFloat(r.delivery_cost||0);
+  const grand = parseFloat(r.total||0);
+  const delivRow = deliv>0 ? `<div class="t-row"><span>Delivery</span><span>${deliv.toFixed(2)}</span></div>` : '';
 
-  const w = window.open('','_blank','width=900,height=700');
-  w.document.write(`<!DOCTYPE html><html><head><title>PO ${r.po_number||r.ref_number}</title>
-  <style>
-    body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px;color:#000}
-    .po-wrap{max-width:800px;margin:0 auto}
-    .po-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
-    .po-title{font-size:28px;font-weight:900;letter-spacing:-1px;margin:4px 0}
-    .logo-box{display:flex;align-items:center;gap:10px}
-    .logo-squares{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:40px}
-    .logo-sq{width:17px;height:17px;background:#f58220;border-radius:2px}
-    .logo-sq.dark{background:#231f20}
-    .mgts-text{font-size:26px;font-weight:900;color:#f58220;letter-spacing:-1px}
-    .mgts-sub{font-size:9px;color:#231f20}
-    .po-meta{text-align:right;font-size:11px}
-    .po-meta table{border-collapse:collapse;margin-left:auto}
-    .po-meta td{padding:2px 6px;border:1px solid #999}
-    .po-meta .label{font-weight:bold;background:#f5f5f5}
-    .contact-box{border:1px solid #999;padding:6px 10px;font-size:10px;min-width:180px}
-    .two-col{display:flex;gap:20px;margin:12px 0}
-    .two-col>div{flex:1}
-    .section-title{font-weight:bold;font-size:11px;border-bottom:1px solid #333;padding-bottom:2px;margin-bottom:4px}
-    .ref-row{display:flex;gap:0;border:1px solid #999;margin:10px 0}
-    .ref-cell{flex:1;padding:4px 8px;border-right:1px solid #999;font-size:10px}
-    .ref-cell:last-child{border-right:none}
-    .ref-cell .lbl{font-weight:bold;display:block;font-size:9px}
-    table.items{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}
-    table.items th{background:#231f20;color:#fff;padding:4px 6px;text-align:left;border:1px solid #555}
-    table.items td{padding:3px 6px;border:1px solid #ccc;vertical-align:top}
-    .totals-box{float:right;border:1px solid #999;padding:6px 12px;min-width:200px;margin-top:8px;font-size:11px}
-    .totals-box .t-row{display:flex;justify-content:space-between;padding:2px 0}
-    .totals-box .t-row.bold{font-weight:bold;border-top:1px solid #999;margin-top:4px;padding-top:4px}
-    .signed{margin-top:60px;font-size:11px}
-    .signed-line{border-bottom:1px solid #000;width:260px;display:inline-block;margin-left:8px}
-    .comments{margin-top:16px;font-size:11px}
-    @media print{body{padding:10px}.no-print{display:none}}
-  </style></head><body>
-  <div class="po-wrap">
-    <div class="po-header">
-      <div>
-        <div class="logo-box">
-          <div class="logo-squares">
-            <div class="logo-sq dark"></div><div class="logo-sq"></div>
-            <div class="logo-sq"></div><div class="logo-sq dark"></div>
-          </div>
-          <div>
-            <div class="mgts-text">mgts</div>
-            <div class="mgts-sub">business and training services ltd</div>
-          </div>
+  const supplierLink = r.supplier_link
+    ? `<div class="ref-cell"><span class="ref-lbl">Website / Link</span><a href="${r.supplier_link}" style="color:#1d4ed8;font-size:9px;word-break:break-all">${r.supplier_link}</a></div>`
+    : '';
+
+  const w = window.open('','_blank','width=940,height=780');
+  w.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Purchase Order ${poNum}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;background:#fff;padding:22px 24px}
+  .wrap{max-width:840px;margin:0 auto}
+  .meta{font-size:9px;color:#555;line-height:1.7;margin-bottom:10px}
+  /* ── header ── */
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px}
+  .po-title{font-size:32px;font-weight:900;letter-spacing:-0.5px;margin-top:8px;line-height:1}
+  .logo{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .lg{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:48px}
+  .ls{width:21px;height:21px;border-radius:2px;background:#231f20}
+  .ls.o{background:#f58220}
+  .logo-name{font-size:34px;font-weight:900;color:#f58220;letter-spacing:-2px;line-height:1}
+  .logo-sub{font-size:9.5px;color:#231f20;letter-spacing:0.03em;margin-top:1px}
+  /* ── info box ── */
+  .info-box{border:1px solid #888;min-width:230px;flex-shrink:0}
+  .info-row{display:flex;border-bottom:1px solid #bbb}
+  .info-row:last-child{border-bottom:none}
+  .ik{padding:3px 8px;font-weight:bold;font-size:10.5px;background:#f0f0f0;border-right:1px solid #bbb;min-width:105px}
+  .iv{padding:3px 8px;font-size:10.5px;flex:1}
+  .info-row.hi .ik,.info-row.hi .iv{background:#fff8ee}
+  /* ── two col ── */
+  .two-col{display:flex;gap:32px;margin:14px 0 10px}
+  .two-col>div{flex:1}
+  .sec{font-weight:bold;font-size:11px;border-bottom:2px solid #000;padding-bottom:3px;margin-bottom:7px;text-transform:uppercase;letter-spacing:.03em}
+  /* ── ref row ── */
+  .ref-row{display:flex;border:1px solid #888;margin:10px 0 12px}
+  .ref-cell{flex:1;padding:4px 9px;border-right:1px solid #888;font-size:10.5px}
+  .ref-cell:last-child{border-right:none}
+  .ref-lbl{font-weight:bold;display:block;font-size:9px;text-transform:uppercase;margin-bottom:1px;color:#555}
+  /* ── items table ── */
+  .items{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:10.5px}
+  .items thead tr{background:#231f20;color:#fff}
+  .items th{padding:5px 7px;text-align:left;border:1px solid #444;font-size:10px;white-space:nowrap}
+  .items th.r{text-align:right}
+  .items td{padding:4px 7px;border:1px solid #ccc;vertical-align:top}
+  .items td.r{text-align:right}
+  .items tbody tr:nth-child(even) td{background:#f9f9f9}
+  /* ── totals ── */
+  .totals{float:right;border:1px solid #888;min-width:230px;margin-top:4px;font-size:11px}
+  .t-row{display:flex;justify-content:space-between;padding:4px 12px;border-bottom:1px solid #ddd;gap:24px}
+  .t-row:last-child{border-bottom:none;font-weight:bold;font-size:11.5px;background:#f5f5f5}
+  .t-row span:last-child{font-variant-numeric:tabular-nums;min-width:60px;text-align:right}
+  /* ── footer ── */
+  .footer-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;clear:both}
+  .see-lines{font-style:italic;font-size:10px}
+  .signed-block{font-size:11px;text-align:right}
+  .signed-line{display:inline-block;border-bottom:1px solid #000;width:290px;margin-left:6px}
+  .comments{margin-top:14px;font-size:11px}
+  .comments .lbl{font-weight:bold;font-size:10px;text-transform:uppercase;margin-bottom:3px}
+  .print-btn{display:block;margin:20px auto 0;padding:10px 32px;background:#f58220;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;letter-spacing:.03em}
+  @media print{body{padding:10px}.print-btn{display:none}}
+</style>
+</head><body>
+<div class="wrap">
+
+  <div class="meta">
+    Created: ${createdAt} by: ${createdBy}<br>
+    Last Amended: ${amendedAt} by: ${amendedBy}
+  </div>
+
+  <div class="hdr">
+    <div>
+      <div class="logo">
+        <div class="lg">
+          <div class="ls"></div><div class="ls o"></div>
+          <div class="ls o"></div><div class="ls"></div>
         </div>
-        <div class="po-title">PURCHASE ORDER</div>
-      </div>
-      <div>
-        <div class="contact-box">
-          <div><strong>ORDER NUMBER</strong> ${r.po_number||r.ref_number}</div>
-          <div><strong>DATE</strong> ${r.request_date||''}</div>
-          <br>
-          <div><strong>Tel:</strong> 02476 630333</div>
-          <div><strong>Fax:</strong> 02476 525029</div>
-          <div><strong>E-mail:</strong> rsmith@mgts.co.uk</div>
-          <div><strong>VAT Reg No. GB</strong> 747892279</div>
+        <div>
+          <div class="logo-name">mgts</div>
+          <div class="logo-sub">business and training services ltd</div>
         </div>
       </div>
+      <div class="po-title">PURCHASE ORDER</div>
     </div>
-
-    <div class="two-col">
-      <div>
-        <div class="section-title">SUPPLIER DETAILS</div>
-        <strong>${r.supplier||''}</strong><br>${addrLines}
-      </div>
-      <div>
-        <div class="section-title">DELIVER TO:</div>
-        <div>MGTS Coventry</div>
-        <div>Gulson Road</div>
-        <div>Coventry</div>
-        <div>CV1 2JG</div>
-        ${r.department ? `<div><em>${r.department}</em></div>` : ''}
-      </div>
+    <div class="info-box">
+      <div class="info-row hi"><div class="ik">ORDER NUMBER</div><div class="iv"><strong>${poNum}</strong></div></div>
+      <div class="info-row hi"><div class="ik">DATE</div><div class="iv"><strong>${poDate}</strong></div></div>
+      <div class="info-row"><div class="ik">Tel:</div><div class="iv">02476 630333</div></div>
+      <div class="info-row"><div class="ik">Fax:</div><div class="iv">02476 525029</div></div>
+      <div class="info-row"><div class="ik">E mail:</div><div class="iv">rsmith@mgts.co.uk</div></div>
+      <div class="info-row"><div class="ik">Website:</div><div class="iv">www.mgts.co.uk</div></div>
+      <div class="info-row"><div class="ik">VAT Reg No. GB</div><div class="iv">747892279</div></div>
     </div>
+  </div>
 
-    <div class="ref-row">
-      <div class="ref-cell"><span class="lbl">Your Reference</span>${r.supplier_ref||''}</div>
-      <div class="ref-cell"><span class="lbl">Supplier Tel</span>${r.supplier_tel||''}</div>
-      <div class="ref-cell"><span class="lbl">Supplier Email</span>${r.supplier_email||''}</div>
+  <div class="two-col">
+    <div>
+      <div class="sec">Supplier Details</div>
+      <strong>${r.supplier||''}</strong>
+      ${addrLines}
     </div>
-    ${r.supplier_link?`<div style="font-size:10px;margin:4px 0;color:#555"><strong>Link/Ref:</strong> <a href="${r.supplier_link}" style="color:#2563eb">${r.supplier_link}</a></div>`:''}
-
-
-    <table class="items">
-      <thead><tr>
-        <th>OUR REF.</th><th>YOUR REF.</th><th>DESCRIPTION</th>
-        <th>DATE REQ.</th><th>QTY</th><th>UNIT PRICE</th><th>TOTAL</th>
-      </tr></thead>
-      <tbody>${lines}</tbody>
-    </table>
-    <div style="overflow:hidden">
-      <div class="totals-box">
-        <div class="t-row"><span>Total Net Amount</span><span>£${parseFloat(r.subtotal||0).toFixed(2)}</span></div>
-        ${r.delivery_cost>0?`<div class="t-row"><span>Delivery</span><span>£${parseFloat(r.delivery_cost).toFixed(2)}</span></div>`:''}
-        <div class="t-row bold"><span>Total Order</span><span>£${parseFloat(r.total||0).toFixed(2)}</span></div>
-      </div>
+    <div>
+      <div class="sec">Deliver To:</div>
+      <div>MGTS Coventry</div>
+      <div>Gulson Road</div>
+      <div>Coventry</div>
+      <div>CV1 2JG</div>
+      ${r.department?`<div style="margin-top:5px"><em>${r.department}</em></div>`:''}
     </div>
-    <div style="clear:both;margin-top:12px;font-style:italic;font-size:10px">See Lines for Delivery Date Required</div>
-    <div class="comments"><strong>ORDER COMMENTS:</strong><br>${r.reason||''}</div>
-    <div class="signed">SIGNED <span class="signed-line">&nbsp;</span></div>
-    <br><button class="no-print" onclick="window.print()">🖨 Print / Save as PDF</button>
-  </div></body></html>`);
+  </div>
+
+  <div class="ref-row">
+    <div class="ref-cell"><span class="ref-lbl">Your Reference</span>${r.supplier_ref||''}</div>
+    <div class="ref-cell"><span class="ref-lbl">Supplier Tel</span>${r.supplier_tel||''}</div>
+    <div class="ref-cell"><span class="ref-lbl">Supplier Email</span>${r.supplier_email||''}</div>
+    ${supplierLink}
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th>OUR REF.</th>
+        <th>YOUR REF.</th>
+        <th style="width:40%">DESCRIPTION</th>
+        <th>DATE REQ.</th>
+        <th class="r">QUANTITY</th>
+        <th class="r">UNIT PRICE</th>
+        <th class="r">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>${lines}</tbody>
+  </table>
+
+  <div class="totals">
+    <div class="t-row"><span>Total Net Amount</span><span>${net.toFixed(2)}</span></div>
+    ${delivRow}
+    <div class="t-row"><span>Total Order</span><span>${grand.toFixed(2)}</span></div>
+  </div>
+
+  <div class="footer-row">
+    <div class="see-lines">See Lines for Delivery Date Required</div>
+    <div class="signed-block">SIGNED <span class="signed-line">&nbsp;</span></div>
+  </div>
+
+  <div class="comments">
+    <div class="lbl">Order Comments:</div>
+    ${r.reason||''}
+  </div>
+
+  <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+
+</div></body></html>`);
   w.document.close();
 }
 

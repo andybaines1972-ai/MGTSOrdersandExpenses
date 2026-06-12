@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MGTS Request &amp; Expenses Hub — User Guide</title>
+<style>
+  :root{
+    --orange:#f58220;
+    --dark:#231f20;
+    --white:#fff;
+    --grey:#f5f5f5;
+    --border:#e0e0e0;
+    --text:#333;
+    --muted:#666;
+    --red:#dc2626;
+    --green:#16a34a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:var(--text);background:#fafafa;font-size:15px;line-height:1.6}
+
+  /* ── COVER ── */
+  .cover{
+    background:var(--dark);
+    color:var(--white);
+    min-height:240px;
+    display:flex;
+    align-items:center;
+    padding:48px 64px;
+    gap:32px;
+    border-bottom:6px solid var(--orange);
+    page-break-after:always;
+  }
+  .cover-squares{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:52px;flex-shrink:0}
+  .cover-sq{width:22px;height:22px;border-radius:4px}
+  .cover-sq.w{background:#fff}.cover-sq.o{background:var(--orange)}
+  .cover-brand{flex:1}
+  .cover-brand .mgts{font-size:52px;font-weight:900;color:var(--orange);letter-spacing:-3px;line-height:1}
+  .cover-brand .full{font-size:13px;color:#aaa;text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+  .cover-brand .title{font-size:26px;font-weight:700;color:#fff;margin-top:12px}
+  .cover-brand .subtitle{font-size:14px;color:#aaa;margin-top:4px}
+  .cover-meta{text-align:right;color:#aaa;font-size:12px;flex-shrink:0}
+  .cover-meta p{margin-top:4px}
+
+  /* ── LAYOUT ── */
+  .container{max-width:900px;margin:0 auto;padding:48px 32px}
+
+  /* ── TOC ── */
+  .toc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:28px 32px;margin-bottom:48px}
+  .toc h2{font-size:16px;color:var(--orange);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;font-weight:800}
+  .toc ol{padding-left:20px}
+  .toc li{margin:6px 0}
+  .toc a{color:var(--dark);text-decoration:none;font-size:14px}
+  .toc a:hover{color:var(--orange);text-decoration:underline}
+  .toc .sub{list-style:none;padding-left:16px;margin-top:4px}
+  .toc .sub li::before{content:"— ";color:var(--muted)}
+  .toc .sub a{color:var(--muted);font-size:13px}
+
+  /* ── SECTIONS ── */
+  .section{margin-bottom:56px}
+  .section-header{
+    background:var(--dark);
+    color:var(--white);
+    border-radius:10px 10px 0 0;
+    padding:16px 24px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border-left:5px solid var(--orange);
+  }
+  .section-num{
+    background:var(--orange);
+    color:#fff;
+    font-weight:900;
+    font-size:18px;
+    width:36px;height:36px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .section-header h2{font-size:20px;font-weight:800}
+  .section-header .role-tag{
+    margin-left:auto;
+    background:rgba(245,130,32,.25);
+    border:1px solid var(--orange);
+    color:var(--orange);
+    font-size:11px;font-weight:700;
+    padding:3px 10px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.06em;
+    flex-shrink:0;
+  }
+  .section-body{background:var(--white);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:28px 32px}
+
+  /* ── STEPS ── */
+  .steps{list-style:none;padding:0}
+  .steps li{
+    display:flex;gap:16px;
+    margin-bottom:20px;
+    align-items:flex-start;
+  }
+  .step-num{
+    background:var(--orange);
+    color:#fff;
+    font-weight:800;
+    font-size:13px;
+    min-width:28px;height:28px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    margin-top:1px;
+  }
+  .step-body{flex:1}
+  .step-body strong{display:block;margin-bottom:3px;color:var(--dark)}
+  .step-body p,.step-body ul{color:var(--muted);font-size:14px}
+  .step-body ul{padding-left:16px;margin-top:4px}
+  .step-body ul li{margin:3px 0}
+
+  /* ── CALLOUT BOXES ── */
+  .callout{border-radius:8px;padding:14px 18px;margin:18px 0;font-size:14px;display:flex;gap:12px;align-items:flex-start}
+  .callout-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+  .callout.tip{background:#fff8ef;border-left:4px solid var(--orange)}
+  .callout.info{background:#eff6ff;border-left:4px solid #3b82f6}
+  .callout.warn{background:#fef9e7;border-left:4px solid #f59e0b}
+  .callout.role{background:#f0fdf4;border-left:4px solid var(--green)}
+  .callout strong{display:block;margin-bottom:3px;color:var(--dark)}
+
+  /* ── ROLE BADGE ── */
+  .badge{
+    display:inline-block;
+    padding:2px 9px;border-radius:12px;
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  }
+  .badge.requestor{background:#e0e7ff;color:#3730a3}
+  .badge.authoriser{background:#fef3c7;color:#92400e}
+  .badge.finance{background:#d1fae5;color:#065f46}
+  .badge.admin{background:#ffe4e6;color:#9f1239}
+
+  /* ── SCREEN MOCKUPS ── */
+  .screen{
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    margin:20px 0;
+    box-shadow:0 2px 12px rgba(0,0,0,.08);
+    font-size:12px;
+  }
+  .screen-bar{
+    background:var(--dark);
+    padding:10px 16px;
+    display:flex;align-items:center;gap:12px;
+    border-bottom:3px solid var(--orange);
+  }
+  .screen-dots{display:flex;gap:5px}
+  .screen-dots span{width:9px;height:9px;border-radius:50%;background:#555}
+  .screen-dots span:first-child{background:#ff5f56}
+  .screen-dots span:nth-child(2){background:#ffbd2e}
+  .screen-dots span:last-child{background:#27c93f}
+  .screen-url{background:#3a3636;border-radius:4px;padding:3px 10px;color:#aaa;font-size:11px;flex:1}
+  .screen-body{background:#fafafa;padding:0}
+
+  /* nav mockup */
+  .mock-nav{
+    background:var(--dark);
+    color:#fff;
+    padding:0 20px;
+    height:56px;
+    display:flex;align-items:center;gap:14px;
+    border-bottom:3px solid var(--orange);
+    font-size:11px;
+  }
+  .mock-nav .mn-squares{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:28px}
+  .mock-nav .mn-sq{width:12px;height:12px;border-radius:2px}
+  .mock-nav .mn-sq.w{background:#fff}.mock-nav .mn-sq.o{background:var(--orange)}
+  .mock-nav .mn-brand{font-size:18px;font-weight:900;color:var(--orange);letter-spacing:-1px}
+  .mock-nav .mn-sub{font-size:9px;color:#aaa;text-transform:uppercase}
+  .mock-nav .mn-sep{width:1px;height:28px;background:#444;margin:0 4px}
+  .mock-nav .mn-app{font-size:12px;font-weight:700;color:#fff}
+  .mock-nav .mn-appsub{font-size:9px;color:#aaa}
+  .mock-nav .spacer{flex:1}
+  .mock-nav .mn-user{text-align:right}
+  .mock-nav .mn-name{font-size:11px;font-weight:600}
+  .mock-nav .mn-badge{display:inline-block;background:rgba(245,130,32,.2);border:1px solid rgba(245,130,32,.5);color:var(--orange);padding:1px 7px;border-radius:8px;font-size:9px;font-weight:700}
+  .mock-nav .mn-signout{background:transparent;border:1px solid #555;color:#ccc;padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:8px}
+
+  /* tabs mockup */
+  .mock-tabs{background:#fff;border-bottom:1px solid var(--border);display:flex;padding:0 20px;gap:4px}
+  .mock-tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer}
+  .mock-tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+  /* stat cards mockup */
+  .mock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px}
+  .mock-stat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;border-left:4px solid var(--orange);cursor:pointer}
+  .mock-stat.urgent{border-left-color:var(--red)}
+  .mock-stat .ms-num{font-size:28px;font-weight:900;color:var(--orange)}
+  .mock-stat.urgent .ms-num{color:var(--red)}
+  .mock-stat .ms-label{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* toolbar mockup */
+  .mock-toolbar{padding:12px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:#fff}
+  .mock-toolbar h3{font-size:15px;font-weight:700;flex:1}
+  .mock-btn{padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer}
+  .mock-btn.primary{background:var(--orange);color:#fff}
+  .mock-btn.secondary{background:#fff;color:var(--dark);border:1px solid var(--border)}
+  .mock-btn.ghost{background:transparent;color:var(--orange);border:1px solid var(--orange)}
+
+  /* form mockup */
+  .mock-form{padding:20px;background:#fafafa}
+  .mock-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mock-field{margin-bottom:10px}
+  .mock-field label{display:block;font-size:11px;font-weight:700;color:var(--dark);margin-bottom:4px}
+  .mock-field label .req{color:var(--red)}
+  .mock-input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;color:var(--text)}
+  .mock-input.err{border-color:var(--red);background:#fff5f5}
+  .mock-select{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff}
+  .mock-textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;height:60px;resize:none}
+  .mock-divider{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);padding-bottom:6px;margin:16px 0 10px}
+  .mock-form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+  /* table mockup */
+  .mock-table{width:100%;border-collapse:collapse;font-size:12px}
+  .mock-table th{background:#f5f5f5;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--border)}
+  .mock-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .mock-table tr:last-child td{border-bottom:none}
+  .status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase}
+  .status-badge.pending{background:#fef3c7;color:#92400e}
+  .status-badge.authorised{background:#d1fae5;color:#065f46}
+  .status-badge.processed{background:#e0e7ff;color:#3730a3}
+  .status-badge.rejected{background:#fee2e2;color:#991b1b}
+
+  /* login mockup */
+  .mock-login{background:var(--dark);padding:40px 20px;display:flex;align-items:center;justify-content:center}
+  .mock-login-card{background:#fff;border-radius:12px;padding:28px 32px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  .mock-login-card .mlc-title{font-size:26px;font-weight:900;color:var(--orange);letter-spacing:-1.5px}
+  .mock-login-card .mlc-sub{font-size:11px;color:var(--muted);margin-top:2px;margin-bottom:20px}
+  .mock-login-card .mlc-label{font-size:11px;font-weight:700;color:var(--dark);margin-bottom:4px}
+  .mock-login-card .mlc-input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:12px}
+  .mock-login-card .mlc-btn{width:100%;background:var(--orange);color:#fff;border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px}
+
+  /* highlight callout */
+  .highlight{background:#fff8ef;border:1px solid #fdd9a5;border-radius:8px;padding:14px 18px;margin:18px 0;font-size:13px}
+  .highlight strong{color:var(--orange)}
+
+  /* role guide table */
+  .role-table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0}
+  .role-table th{background:var(--dark);color:#fff;padding:10px 14px;text-align:left;font-size:12px}
+  .role-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  .role-table tr:nth-child(even) td{background:#fafafa}
+  .role-table ul{padding-left:16px;margin:0}
+  .role-table ul li{margin:2px 0}
+
+  /* ── PRINT ── */
+  @media print{
+    body{background:#fff;font-size:12px}
+    .cover{page-break-after:always}
+    .section{page-break-inside:avoid}
+    .screen{page-break-inside:avoid}
+    .no-print{display:none}
+    a{color:inherit;text-decoration:none}
+  }
+
+  @media(max-width:600px){
+    .cover{padding:28px 20px;flex-direction:column}
+    .container{padding:24px 16px}
+    .mock-stats{grid-template-columns:1fr 1fr}
+    .mock-form-grid{grid-template-columns:1fr}
+    .section-body{padding:20px 16px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ COVER ═══════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-squares">
+    <div class="cover-sq w"></div><div class="cover-sq o"></div>
+    <div class="cover-sq o"></div><div class="cover-sq w"></div>
+  </div>
+  <div class="cover-brand">
+    <div class="mgts">mgts</div>
+    <div class="full">Midland Group Training Services</div>
+    <div class="title">Request &amp; Expenses Hub</div>
+    <div class="subtitle">User Guide — All Roles</div>
+  </div>
+  <div class="cover-meta">
+    <p><strong>Version 1.0</strong></p>
+    <p>June 2026</p>
+    <p style="margin-top:12px">For help contact:</p>
+    <p>Andy Baines</p>
+    <p>andrewbaines@mgts.co.uk</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════ ROLES OVERVIEW ═══════════════════════════ -->
+  <div style="margin-bottom:40px">
+    <h2 style="font-size:13px;color:var(--orange);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;font-weight:800">Who can do what?</h2>
+    <table class="role-table">
+      <tr>
+        <th>Role</th>
+        <th>What they can do</th>
+      </tr>
+      <tr>
+        <td><span class="badge requestor">Requestor</span></td>
+        <td>
+          <ul>
+            <li>Submit Purchase Requests, Expense Claims and Mileage Claims</li>
+            <li>View and delete their own submissions</li>
+            <li>Track status of their requests</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge authoriser">Authoriser</span></td>
+        <td>
+          <ul>
+            <li>Everything a Requestor can do</li>
+            <li>Approve or reject requests assigned to them</li>
+            <li>View all pending items on the dashboard action queue</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge finance">Finance</span></td>
+        <td>
+          <ul>
+            <li>Everything an Authoriser can do</li>
+            <li>Process POs on authorised requests (mark as Processed)</li>
+            <li>View all submissions across all users</li>
+            <li>Export data to CSV</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge admin">Admin / Finance</span></td>
+        <td>
+          <ul>
+            <li>Manage users — add, edit, activate/deactivate</li>
+            <li>Bulk import users via CSV</li>
+            <li>Download/upload the user list template</li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════ TABLE OF CONTENTS ═══════════════════════ -->
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">Signing In</a></li>
+      <li><a href="#s2">The Dashboard</a>
+        <ul class="sub">
+          <li><a href="#s2">Stat cards &amp; quick navigation</a></li>
+          <li><a href="#s2">Action queue</a></li>
+        </ul>
+      </li>
+      <li><a href="#s3">Raising a Purchase Request</a>
+        <ul class="sub">
+          <li><a href="#s3">Filling in the form</a></li>
+          <li><a href="#s3">Attaching documents</a></li>
+        </ul>
+      </li>
+      <li><a href="#s4">Raising an Expense Claim</a></li>
+      <li><a href="#s5">Raising a Mileage Claim</a></li>
+      <li><a href="#s6">Authorising Requests</a></li>
+      <li><a href="#s7">Finance: Processing POs</a></li>
+      <li><a href="#s8">Viewing &amp; Managing Your Requests</a></li>
+      <li><a href="#s9">Exporting Data to CSV</a></li>
+      <li><a href="#s10">Admin: Managing Users</a></li>
+      <li><a href="#s11">Tips &amp; Common Questions</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════════════════ 1 · SIGNING IN ════════════════════════════ -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Signing In</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">https://mgts-request-hub.vercel.app</div>
+        </div>
+        <div class="mock-login">
+          <div class="mock-login-card">
+            <div class="mlc-title">MGTS</div>
+            <div class="mlc-sub">Midland Group Training Services<br>Request &amp; Expenses Hub</div>
+
+            <div class="mlc-label">Email address</div>
+            <input class="mlc-input" value="you@mgts.co.uk" readonly>
+            <div class="mlc-label">Password</div>
+            <input class="mlc-input" type="password" value="password" readonly>
+            <button class="mlc-btn">Sign In</button>
+          </div>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Open the hub in your browser</strong>
+            <p>Go to <strong>https://mgts-request-hub.vercel.app</strong> — bookmark it for quick access.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Enter your MGTS email address and password</strong>
+            <p>Your account will be set up by the Finance team. If you haven't received your login details, contact Andy Baines.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Click <em>Sign In</em></strong>
+            <p>You'll land on the Dashboard. Your name and role appear in the top-right corner of the banner.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout tip">
+        <div class="callout-icon">🔑</div>
+        <div>
+          <strong>First time logging in?</strong>
+          You'll receive an invitation email from no-reply@mgts.co.uk. Click the link in the email to set your own password before signing in here for the first time.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ 2 · DASHBOARD ════════════════════════════ -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>The Dashboard</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">mgts-request-hub.vercel.app — Dashboard</div>
+        </div>
+        <!-- nav -->
+        <div class="mock-nav">
+          <div class="mn-squares">
+            <div class="mn-sq w"></div><div class="mn-sq o"></div>
+            <div class="mn-sq o"></div><div class="mn-sq w"></div>
+          </div>
+          <div>
+            <div class="mn-brand">mgts</div>
+            <div class="mn-sub">Midland Group Training Services</div>
+          </div>
+          <div class="mn-sep"></div>
+          <div>
+            <div class="mn-app">Request &amp; Expenses Hub</div>
+            <div class="mn-appsub">Purchase · Expenses · Mileage</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="mn-user">
+            <div class="mn-name">Jane Albion</div>
+            <span class="mn-badge">Finance</span>
+          </div>
+          <button class="mn-signout">Sign Out</button>
+        </div>
+        <!-- tabs -->
+        <div class="mock-tabs">
+          <div class="mock-tab active">Dashboard</div>
+          <div class="mock-tab">Purchase Requests <span style="background:#f58220;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px">3</span></div>
+          <div class="mock-tab">Expense Claims <span style="background:#f58220;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px">1</span></div>
+          <div class="mock-tab">Mileage Claims</div>
+        </div>
+        <!-- stat cards -->
+        <div class="mock-stats">
+          <div class="mock-stat urgent">
+            <div class="ms-num">4</div>
+            <div class="ms-label">Awaiting PO Processing</div>
+          </div>
+          <div class="mock-stat">
+            <div class="ms-num">3</div>
+            <div class="ms-label">Purchase Requests Pending</div>
+          </div>
+          <div class="mock-stat">
+            <div class="ms-num">1</div>
+            <div class="ms-label">Expense Claims Pending</div>
+          </div>
+          <div class="mock-stat">
+            <div class="ms-num">0</div>
+            <div class="ms-label">Mileage Claims Pending</div>
+          </div>
+          <div class="mock-stat">
+            <div class="ms-num">4</div>
+            <div class="ms-label">Purchase Requests Authorised</div>
+          </div>
+          <div class="mock-stat">
+            <div class="ms-num">12</div>
+            <div class="ms-label">Total Processed</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-bottom:16px">The dashboard gives you a live count of all requests across the system. What you see depends on your role:</p>
+
+      <div class="callout role">
+        <div class="callout-icon">📊</div>
+        <div>
+          <strong>Stat cards are clickable</strong>
+          Click any card to jump straight to that list, already filtered. For example clicking <em>"Purchase Requests Pending"</em> opens the Purchase Requests tab showing only Pending items.
+        </div>
+      </div>
+
+      <table class="role-table" style="margin-top:12px">
+        <tr><th>Role</th><th>What the first card shows</th></tr>
+        <tr><td><span class="badge requestor">Requestor</span></td><td>Total pending items across all three types</td></tr>
+        <tr><td><span class="badge authoriser">Authoriser</span></td><td>Pending items awaiting your approval</td></tr>
+        <tr><td><span class="badge finance">Finance</span></td><td><strong style="color:var(--red)">Authorised items awaiting PO processing</strong> — shown in red when there are items to action</td></tr>
+      </table>
+
+      <div class="callout info" style="margin-top:16px">
+        <div class="callout-icon">ℹ️</div>
+        <div>
+          <strong>Action queue below the cards</strong>
+          Authorisers and Finance staff see a table of items that need their attention directly below the stat cards — no need to click into each tab individually.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 3 · PURCHASE REQUEST ═════════════════════════ -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Raising a Purchase Request</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Click the <em>Purchase Requests</em> tab</strong>
+            <p>Then click the orange <strong>+ New Purchase Request</strong> button.</p>
+          </div>
+        </li>
+      </ol>
+
+      <!-- toolbar mockup -->
+      <div class="screen" style="margin-bottom:16px">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Purchase Requests</div>
+        </div>
+        <div class="mock-toolbar">
+          <h3>Purchase Requests</h3>
+          <select class="mock-select" style="width:150px">
+            <option>All Statuses</option>
+          </select>
+          <button class="mock-btn primary">+ New Purchase Request</button>
+          <button class="mock-btn ghost">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Fill in the request form</strong>
+            <p>Fields marked with a <strong style="color:var(--red)">red asterisk *</strong> are required. If you try to submit with missing required fields, they will be highlighted in red.</p>
+          </div>
+        </li>
+      </ol>
+
+      <!-- form mockup -->
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">New Purchase Request</div>
+        </div>
+        <div class="mock-form">
+          <div class="mock-divider">Your Details</div>
+          <div class="mock-form-grid">
+            <div class="mock-field">
+              <label>Your Name <span class="req">*</span></label>
+              <input class="mock-input" value="Steve Palmer" readonly>
+            </div>
+            <div class="mock-field">
+              <label>Department <span class="req">*</span></label>
+              <select class="mock-select"><option>Operations</option></select>
+            </div>
+            <div class="mock-field">
+              <label>Authoriser <span class="req">*</span></label>
+              <select class="mock-select"><option>Ruth Smith</option></select>
+            </div>
+            <div class="mock-field">
+              <label>Date Required</label>
+              <input class="mock-input" value="20/06/2026" readonly>
+            </div>
+          </div>
+
+          <div class="mock-divider">Supplier Details</div>
+          <div class="mock-form-grid">
+            <div class="mock-field">
+              <label>Supplier Name <span class="req">*</span></label>
+              <input class="mock-input" value="RS Components" readonly>
+            </div>
+            <div class="mock-field">
+              <label>Supplier Email</label>
+              <input class="mock-input" value="orders@rs-components.com" readonly>
+            </div>
+          </div>
+          <div class="mock-field">
+            <label>Website / Product Link</label>
+            <input class="mock-input" value="https://uk.rs-online.com/web/p/..." readonly>
+          </div>
+
+          <div class="mock-divider">Items to Order</div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 28px;gap:8px;font-weight:700;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
+              <span>Description</span><span>Qty</span><span>Unit Price</span><span>Total</span><span></span>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 28px;gap:8px;align-items:center">
+              <input class="mock-input" value="Cable ties 200mm pk/100" readonly>
+              <input class="mock-input" value="3" readonly>
+              <input class="mock-input" value="£4.50" readonly>
+              <input class="mock-input" value="£13.50" readonly style="background:#f5f5f5">
+              <span style="color:var(--red);font-size:16px;text-align:center">✕</span>
+            </div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+              <button class="mock-btn secondary" style="font-size:10px">+ Add Item</button>
+              <span style="font-size:12px;font-weight:800">Total: <strong style="color:var(--orange)">£13.50</strong></span>
+            </div>
+          </div>
+
+          <div class="mock-divider">Attachments &amp; Documents</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">No attachments yet</div>
+          <button class="mock-btn secondary" style="font-size:10px">📎 Attach File</button>
+
+          <div class="mock-form-actions">
+            <button class="mock-btn secondary">Cancel</button>
+            <button class="mock-btn primary">Submit Request</button>
+          </div>
+        </div>
+      </div>
+
+      <ol class="steps" style="margin-top:20px">
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Select your Authoriser</strong>
+            <p>Choose the manager who should approve this request. Only active authorisers are shown in the dropdown.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Add items to order</strong>
+            <p>Click <strong>+ Add Item</strong> to add more rows. The total calculates automatically as you type. You can remove a row using the red ✕ button.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>Attach any supporting documents (optional)</strong>
+            <p>Click <strong>📎 Attach File</strong> to upload quotes, Amazon screenshots, or any other supporting documents. Accepted formats: PDF, Word, Excel, images (JPG, PNG).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <strong>Click <em>Submit Request</em></strong>
+            <p>The request is saved as <span class="status-badge pending">Pending</span> and the authoriser is notified by email.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div>
+          <strong>Amazon or RS Components?</strong>
+          Paste the product page URL into the <em>Website / Product Link</em> field so Finance can see exactly what you need — no need to include a supplier email address for online purchases.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 4 · EXPENSE CLAIM ════════════════════════════ -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Raising an Expense Claim</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Click the <em>Expense Claims</em> tab, then <em>+ New Expense Claim</em></strong>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Fill in your details and select an authoriser</strong>
+            <p>Enter your name, department, and select the authoriser for this claim.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Add expense lines</strong>
+            <p>For each expense enter:
+              <ul>
+                <li><strong>Date</strong> — date the expense was incurred</li>
+                <li><strong>Category</strong> — e.g. Travel, Accommodation, Meals, Stationery, Other</li>
+                <li><strong>Description</strong> — brief note of what it was for</li>
+                <li><strong>Amount</strong> — the amount in £</li>
+              </ul>
+            </p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Attach your receipts</strong>
+            <p>Click <strong>📎 Attach File</strong> to upload receipt images or scans. Claims submitted without receipts may be returned.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>Click <em>Submit Claim</em></strong>
+          </div>
+        </li>
+      </ol>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">New Expense Claim</div>
+        </div>
+        <div class="mock-form">
+          <div class="mock-form-grid">
+            <div class="mock-field">
+              <label>Employee Name <span class="req">*</span></label>
+              <input class="mock-input" value="David Bridgens" readonly>
+            </div>
+            <div class="mock-field">
+              <label>Department <span class="req">*</span></label>
+              <select class="mock-select"><option>Sales</option></select>
+            </div>
+            <div class="mock-field">
+              <label>Authoriser <span class="req">*</span></label>
+              <select class="mock-select"><option>Ruth Smith</option></select>
+            </div>
+            <div class="mock-field">
+              <label>Notes / Purpose</label>
+              <input class="mock-input" value="Client visit Manchester" readonly>
+            </div>
+          </div>
+          <div class="mock-divider">Expense Lines</div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px">
+            <div style="display:grid;grid-template-columns:100px 130px 1fr 90px 28px;gap:8px;font-weight:700;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
+              <span>Date</span><span>Category</span><span>Description</span><span>Amount</span><span></span>
+            </div>
+            <div style="display:grid;grid-template-columns:100px 130px 1fr 90px 28px;gap:8px;align-items:center;margin-bottom:6px">
+              <input class="mock-input" value="10/06/26" readonly>
+              <select class="mock-select"><option>Travel</option></select>
+              <input class="mock-input" value="Train to Manchester" readonly>
+              <input class="mock-input" value="£42.50" readonly>
+              <span style="color:var(--red);font-size:16px;text-align:center">✕</span>
+            </div>
+            <div style="display:grid;grid-template-columns:100px 130px 1fr 90px 28px;gap:8px;align-items:center">
+              <input class="mock-input" value="10/06/26" readonly>
+              <select class="mock-select"><option>Meals</option></select>
+              <input class="mock-input" value="Lunch with client" readonly>
+              <input class="mock-input" value="£18.90" readonly>
+              <span style="color:var(--red);font-size:16px;text-align:center">✕</span>
+            </div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between">
+              <button class="mock-btn secondary" style="font-size:10px">+ Add Line</button>
+              <span style="font-size:12px;font-weight:800">Total: <strong style="color:var(--orange)">£61.40</strong></span>
+            </div>
+          </div>
+          <div class="mock-form-actions" style="margin-top:20px">
+            <button class="mock-btn secondary">Cancel</button>
+            <button class="mock-btn primary">Submit Claim</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 5 · MILEAGE CLAIM ════════════════════════════ -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Raising a Mileage Claim</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Click the <em>Mileage Claims</em> tab, then <em>+ New Mileage Claim</em></strong>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Fill in your details, select an authoriser and the claim month</strong>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Add journey lines</strong>
+            <p>For each journey enter the date, destination, purpose, and miles driven. The claim amount calculates automatically at the HMRC approved rate (55p/mile for private cars).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click <em>Submit Claim</em></strong>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div>
+          <strong>Mileage rates (HMRC 2026)</strong>
+          <ul style="margin-top:6px;padding-left:16px;font-size:13px">
+            <li><strong>Private car:</strong> 55p per mile (updated HMRC rate)</li>
+            <li><strong>Company car:</strong> calculated at the advisory fuel rate for your vehicle — check with Finance</li>
+          </ul>
+          The system calculates private car claims automatically. The total is shown at the bottom of the form.
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">New Mileage Claim</div>
+        </div>
+        <div class="mock-form">
+          <div class="mock-form-grid">
+            <div class="mock-field">
+              <label>Employee Name <span class="req">*</span></label>
+              <input class="mock-input" value="Steve Palmer" readonly>
+            </div>
+            <div class="mock-field">
+              <label>Department <span class="req">*</span></label>
+              <select class="mock-select"><option>Operations</option></select>
+            </div>
+            <div class="mock-field">
+              <label>Claim Month <span class="req">*</span></label>
+              <input class="mock-input" value="June 2026" readonly>
+            </div>
+            <div class="mock-field">
+              <label>Authoriser <span class="req">*</span></label>
+              <select class="mock-select"><option>Ruth Smith</option></select>
+            </div>
+          </div>
+          <div class="mock-divider">Journey Log</div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px">
+            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;font-weight:700;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
+              <span>Date</span><span>From → To</span><span>Purpose</span><span>Miles</span><span></span>
+            </div>
+            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;align-items:center">
+              <input class="mock-input" value="05/06/26" readonly>
+              <input class="mock-input" value="Coventry → Birmingham" readonly>
+              <input class="mock-input" value="Client meeting" readonly>
+              <input class="mock-input" value="24" readonly>
+              <span style="color:var(--red);font-size:16px;text-align:center">✕</span>
+            </div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between">
+              <button class="mock-btn secondary" style="font-size:10px">+ Add Journey</button>
+              <span style="font-size:12px;font-weight:800">Total: <strong style="color:var(--orange)">£13.20</strong> &nbsp;(24 miles × 55p)</span>
+            </div>
+          </div>
+          <div class="mock-form-actions" style="margin-top:20px">
+            <button class="mock-btn secondary">Cancel</button>
+            <button class="mock-btn primary">Submit Claim</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 6 · AUTHORISING ══════════════════════════════ -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Authorising Requests</h2>
+      <span class="role-tag">Authoriser / Finance</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">When a request is assigned to you, you'll see it in your <strong>Dashboard action queue</strong> and receive an email notification.</p>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Dashboard — Action Queue</div>
+        </div>
+        <div style="padding:16px 20px;background:#fff">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px">Pending Items — Action Required</div>
+          <table class="mock-table">
+            <tr>
+              <th>Ref</th><th>Type</th><th>Requested By</th><th>Total</th><th>Status</th><th>Actions</th>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0012</strong></td>
+              <td>Purchase</td>
+              <td>Steve Palmer</td>
+              <td>£13.50</td>
+              <td><span class="status-badge pending">Pending</span></td>
+              <td>
+                <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Authorise</button>
+                <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red)">✕ Reject</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>EXP-0005</strong></td>
+              <td>Expense</td>
+              <td>David Bridgens</td>
+              <td>£61.40</td>
+              <td><span class="status-badge pending">Pending</span></td>
+              <td>
+                <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Authorise</button>
+                <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red)">✕ Reject</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <ol class="steps" style="margin-top:20px">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Review the request</strong>
+            <p>Click the reference number (e.g. <strong>PRQ-0012</strong>) to open the full request and see all details, items, and any attached documents.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Click <em>✓ Authorise</em> or <em>✕ Reject</em></strong>
+            <p>The status updates immediately. Finance is notified automatically when you authorise a purchase request.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div>
+          <strong>You cannot authorise your own requests</strong>
+          If you submitted a request yourself, the Authorise/Reject buttons will not appear when you view it. Another authoriser must approve it.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 7 · FINANCE / PO ═════════════════════════════ -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Finance: Processing POs</h2>
+      <span class="role-tag">Finance Only</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">Once a request is <span class="status-badge authorised">Authorised</span>, Finance needs to raise the PO, place the order, and mark it as Processed in the hub.</p>
+
+      <div class="callout role">
+        <div class="callout-icon">🔴</div>
+        <div>
+          <strong>Finance dashboard shows your action queue</strong>
+          The first stat card turns <strong style="color:var(--red)">red</strong> when there are authorised items awaiting PO processing. Click it to jump straight to the filtered list.
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Click the red <em>Awaiting PO Processing</em> card on the Dashboard</strong>
+            <p>This takes you to the Purchase Requests tab filtered to <strong>Authorised</strong> status.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Open the request and review the details</strong>
+            <p>Check the supplier, items, total, and any attached quotes.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Raise the PO in your accounts system, then click <em>Mark as Processed</em></strong>
+            <p>The request moves to <span class="status-badge processed">Processed</span> status. The requestor is notified by email.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Purchase Requests — Authorised</div>
+        </div>
+        <div style="padding:16px 20px;background:#fff">
+          <table class="mock-table">
+            <tr>
+              <th>Ref</th><th>Requested By</th><th>Supplier</th><th>Total</th><th>Status</th><th>Actions</th>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0012</strong></td>
+              <td>Steve Palmer</td>
+              <td>RS Components</td>
+              <td>£13.50</td>
+              <td><span class="status-badge authorised">Authorised</span></td>
+              <td>
+                <button class="mock-btn primary" style="font-size:10px">✓ Mark Processed</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 8 · VIEWING / MANAGING ══════════════════════ -->
+  <div class="section" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Viewing &amp; Managing Your Requests</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Purchase Requests — list view</div>
+        </div>
+        <div class="mock-toolbar">
+          <h3>Purchase Requests</h3>
+          <select class="mock-select" style="width:150px"><option>All Statuses</option></select>
+          <button class="mock-btn primary">+ New Purchase Request</button>
+          <button class="mock-btn ghost">⬇ Export CSV</button>
+        </div>
+        <div style="padding:0 0 12px;background:#fff">
+          <table class="mock-table">
+            <tr>
+              <th>Ref</th><th>Date</th><th>Supplier</th><th>Total</th><th>Status</th><th>Actions</th>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0012</strong></td>
+              <td>12/06/26</td>
+              <td>RS Components</td>
+              <td>£13.50</td>
+              <td><span class="status-badge pending">Pending</span></td>
+              <td>
+                <button class="mock-btn secondary" style="font-size:10px">View</button>
+                <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red);margin-left:4px">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0009</strong></td>
+              <td>05/06/26</td>
+              <td>Amazon</td>
+              <td>£42.00</td>
+              <td><span class="status-badge authorised">Authorised</span></td>
+              <td>
+                <button class="mock-btn secondary" style="font-size:10px">View</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0007</strong></td>
+              <td>28/05/26</td>
+              <td>Screwfix</td>
+              <td>£89.99</td>
+              <td><span class="status-badge processed">Processed</span></td>
+              <td>
+                <button class="mock-btn secondary" style="font-size:10px">View</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <ul style="margin-top:16px;padding-left:20px;font-size:14px;color:var(--muted)">
+        <li style="margin-bottom:8px"><strong style="color:var(--dark)">Filter by status</strong> — use the dropdown to show only Pending, Authorised, Rejected, or Processed items.</li>
+        <li style="margin-bottom:8px"><strong style="color:var(--dark)">View</strong> — opens the full detail view. From here you can see all fields, print the request (via your browser's print), and download any attachments.</li>
+        <li style="margin-bottom:8px"><strong style="color:var(--dark)">Delete</strong> — only visible on your own requests, and only when the request is still <span class="status-badge pending">Pending</span>. Once authorised, you cannot delete it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 9 · CSV EXPORT ═══════════════════════════════ -->
+  <div class="section" id="s9">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Exporting Data to CSV</h2>
+      <span class="role-tag">Finance / Admin</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">You can export all request data to CSV for use in Excel, your accounts system, or OneDrive.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Per-tab export</strong>
+            <p>On the Purchase Requests, Expense Claims, or Mileage Claims tab, click the orange <strong>⬇ Export CSV</strong> button. The file downloads immediately with all records visible to you (including current filter).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Export everything at once</strong>
+            <p>In the <strong>Admin tab</strong>, click <strong>Export All Data</strong> to download a combined CSV with Purchase Requests, Expense Claims and Mileage Claims in one file, with a <em>Type</em> column to distinguish them.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div>
+          <strong>Excel compatibility</strong>
+          All exported files include a UTF-8 BOM so they open correctly in Microsoft Excel without garbled characters.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 10 · ADMIN ════════════════════════════════════ -->
+  <div class="section" id="s10">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Admin: Managing Users</h2>
+      <span class="role-tag">Finance / Admin</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">The <strong>Admin</strong> tab is visible to Finance users. It lets you manage who can access the hub and what role they have.</p>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Admin — User Management</div>
+        </div>
+        <div class="mock-toolbar">
+          <h3>User Management</h3>
+          <button class="mock-btn primary">+ Add User</button>
+          <button class="mock-btn ghost">⬆ Import CSV</button>
+          <button class="mock-btn secondary">⬇ Download Template</button>
+          <button class="mock-btn secondary" style="margin-left:auto">⬇ Export All Data</button>
+        </div>
+        <div style="padding:0 0 12px;background:#fff">
+          <table class="mock-table">
+            <tr>
+              <th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th>
+            </tr>
+            <tr>
+              <td><strong>Jane Albion</strong></td>
+              <td>janealbion@mgts.co.uk</td>
+              <td><span class="badge finance">Finance</span></td>
+              <td>✅</td>
+              <td><button class="mock-btn secondary" style="font-size:10px">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>Ruth Smith</strong></td>
+              <td>ruthsmith@mgts.co.uk</td>
+              <td><span class="badge authoriser">Authoriser</span></td>
+              <td>✅</td>
+              <td><button class="mock-btn secondary" style="font-size:10px">Edit</button></td>
+            </tr>
+            <tr>
+              <td><strong>Steve Palmer</strong></td>
+              <td>stevepalmer@mgts.co.uk</td>
+              <td><span class="badge requestor">Requestor</span></td>
+              <td>✅</td>
+              <td><button class="mock-btn secondary" style="font-size:10px">Edit</button></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <h3 style="margin:24px 0 12px;font-size:15px">Adding a single user</h3>
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Click <em>+ Add User</em></strong>
+            <p>Fill in their name, email address, and role (Requestor, Authoriser, or Finance).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Click <em>Save</em></strong>
+            <p>The user appears in the list. Their login account is separate — you'll need to send them a Supabase invite (see Finance for this step).</p>
+          </div>
+        </li>
+      </ol>
+
+      <h3 style="margin:24px 0 12px;font-size:15px">Bulk importing users from CSV</h3>
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Download the template</strong>
+            <p>Click <strong>⬇ Download Template</strong> to get a blank CSV with the correct columns: <code>Name, Email, Role</code>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Fill in the template</strong>
+            <p>Open in Excel. Add one row per person. The <strong>Role</strong> column must be exactly one of: <code>requestor</code>, <code>authoriser</code>, or <code>finance</code> (lowercase).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Click <em>⬆ Import CSV</em> and select your file</strong>
+            <p>A preview table shows all the rows it found. Check the data looks correct.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click <em>Confirm Import</em></strong>
+            <p>The users are added to the system. Existing users (matched by email) are updated, not duplicated.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout info">
+        <div class="callout-icon">ℹ️</div>
+        <div>
+          <strong>Deactivating users</strong>
+          Click <strong>Edit</strong> next to a user and uncheck <em>Active</em>. Inactive users are hidden from authoriser dropdowns but their historical records remain.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 11 · TIPS ════════════════════════════════════ -->
+  <div class="section" id="s11">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Tips &amp; Common Questions</h2>
+      <span class="role-tag">All Roles</span>
+    </div>
+    <div class="section-body">
+
+      <div class="highlight">
+        <strong>Q: I submitted a request but made a mistake — can I edit it?</strong><br>
+        Delete the request (if still Pending) and re-submit. Once authorised, contact Finance directly to make changes.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: I can't see the authoriser I need in the dropdown.</strong><br>
+        Only active authorisers appear. Contact Finance to check the user is set up correctly and marked as Active.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: I've forgotten my password.</strong><br>
+        Contact Andy Baines — he can trigger a password reset email from Supabase.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: I submitted a request but the Finance team can't see it.</strong><br>
+        Check the status — Finance only act on <span class="status-badge authorised">Authorised</span> requests. If yours is still <span class="status-badge pending">Pending</span> it needs an authoriser to approve it first.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: Can I use this on my phone?</strong><br>
+        Yes — the hub is fully responsive. Open the same link in your phone browser and it will adapt to the smaller screen.
+      </div>
+
+      <div class="callout tip" style="margin-top:20px">
+        <div class="callout-icon">📧</div>
+        <div>
+          <strong>Need help or found a bug?</strong>
+          Contact Andy Baines at <strong>andrewbaines@mgts.co.uk</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="border-top:1px solid var(--border);margin-top:48px;padding-top:20px;text-align:center;font-size:12px;color:var(--muted)">
+    <p>MGTS Request &amp; Expenses Hub &nbsp;·&nbsp; User Guide v1.0 &nbsp;·&nbsp; June 2026</p>
+    <p style="margin-top:4px">Midland Group Training Services &nbsp;·&nbsp; Built by Andy Baines</p>
+  </div>
+
+</div>
+</body>
+</html>
