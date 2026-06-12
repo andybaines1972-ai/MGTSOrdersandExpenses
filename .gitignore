@@ -1,0 +1,14 @@
+# Vercel
+.vercel
+
+# Environment / secrets — never commit
+.env
+.env.*
+*.env
+
+# Local node packages
+node_modules/
+
+# Setup scripts that may contain credentials
+setup-users.js
+create-users.sql

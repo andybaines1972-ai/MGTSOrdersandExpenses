@@ -17,9 +17,9 @@ CREATE POLICY "Authenticated users can delete attachments"
 ON storage.objects FOR DELETE TO authenticated
 USING (bucket_id = 'mgts-attachments');
 
--- Allow anyone (public) to read/download files (public bucket)
-CREATE POLICY "Public can read attachments"
-ON storage.objects FOR SELECT TO public
+-- Only authenticated users can read/download files (receipts are sensitive)
+CREATE POLICY "Authenticated users can read attachments"
+ON storage.objects FOR SELECT TO authenticated
 USING (bucket_id = 'mgts-attachments');
 
 -- ── VERIFY ────────────────────────────────────────────────

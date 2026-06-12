@@ -817,6 +817,7 @@ const STAFF = [
 ].sort();
 
 // ── HELPERS ───────────────────────────────────────────────
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmt = n => '£' + (parseFloat(n)||0).toFixed(2);
 const today = () => new Date().toISOString().slice(0,10);
 const nowMonth = () => new Date().toISOString().slice(0,7);
@@ -1035,12 +1036,12 @@ function renderPR(){
   const tbody = document.getElementById('pr-tbody');
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><p>No purchase requests found.</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r=>`<tr>
-    <td><span class="ref">${r.ref_number}</span></td>
-    <td>${r.requested_by||'—'}</td>
-    <td>${r.request_date||'—'}</td>
-    <td>${r.supplier||'—'}</td>
+    <td><span class="ref">${esc(r.ref_number)}</span></td>
+    <td>${esc(r.requested_by||'—')}</td>
+    <td>${esc(r.request_date||'—')}</td>
+    <td>${esc(r.supplier||'—')}</td>
     <td>${fmt(r.total)}</td>
-    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><span class="status ${statusCls(r.status)}">${esc(r.status)}</span></td>
     <td><button class="btn btn-sm btn-secondary" onclick="openPRModal('${r.id}')">View</button></td>
   </tr>`).join('');
 }
@@ -1264,10 +1265,10 @@ function renderEX(){
   const tbody = document.getElementById('ex-tbody');
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><p>No expense claims found.</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r=>`<tr>
-    <td><span class="ref">${r.ref_number}</span></td>
-    <td>${r.employee_name||'—'}</td><td>${r.claim_month||'—'}</td>
+    <td><span class="ref">${esc(r.ref_number)}</span></td>
+    <td>${esc(r.employee_name||'—')}</td><td>${esc(r.claim_month||'—')}</td>
     <td>${fmt(r.total)}</td><td>${fmt(r.total_vat)}</td>
-    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><span class="status ${statusCls(r.status)}">${esc(r.status)}</span></td>
     <td><button class="btn btn-sm btn-secondary" onclick="openEXModal('${r.id}')">View</button></td>
   </tr>`).join('');
 }
@@ -1439,12 +1440,12 @@ function renderMI(){
   const tbody = document.getElementById('mi-tbody');
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><p>No mileage claims found.</p></div></td></tr>`; return; }
   tbody.innerHTML = rows.map(r=>`<tr>
-    <td><span class="ref">${r.ref_number}</span></td>
-    <td>${r.employee_name||'—'}</td><td>${r.claim_month||'—'}</td>
-    <td>${r.vehicle_type||'—'}</td>
+    <td><span class="ref">${esc(r.ref_number)}</span></td>
+    <td>${esc(r.employee_name||'—')}</td><td>${esc(r.claim_month||'—')}</td>
+    <td>${esc(r.vehicle_type||'—')}</td>
     <td>${r.business_mileage||0}</td>
     <td>${fmt(r.total_claim)}</td>
-    <td><span class="status ${statusCls(r.status)}">${r.status}</span></td>
+    <td><span class="status ${statusCls(r.status)}">${esc(r.status)}</span></td>
     <td><button class="btn btn-sm btn-secondary" onclick="openMIModal('${r.id}')">View</button></td>
   </tr>`).join('');
 }
@@ -1658,12 +1659,12 @@ async function deleteRecord(table, id, type){
 function renderUsers(){
   if(!ALL_USERS.length){ document.getElementById('user-tbody').innerHTML=`<tr><td colspan="7"><div class="empty"><p>No users found.</p></div></td></tr>`; return; }
   document.getElementById('user-tbody').innerHTML = ALL_USERS.map(u=>`<tr>
-    <td>${u.name}</td><td>${u.email}</td>
-    <td>${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</td>
+    <td>${esc(u.name)}</td><td>${esc(u.email)}</td>
+    <td>${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</td>
     <td>${u.is_active?'Yes':'No'}</td>
     <td><button class="btn btn-sm btn-secondary" onclick="openUserModal('${u.id}')">Edit</button></td>
-    <td><button class="btn btn-sm btn-secondary" onclick="sendInvite('${u.name.replace(/'/g,"\\'")}','${u.email}','${u.role}')" title="Send invite email so they can set a password">✉ Invite</button></td>
-    <td><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Delete</button></td>
+    <td><button class="btn btn-sm btn-secondary" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" onclick="sendInvite(this.dataset.name,this.dataset.email,this.dataset.role)" title="Send invite email so they can set a password">✉ Invite</button></td>
+    <td><button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" data-name="${esc(u.name)}" onclick="deleteUser('${u.id}',this.dataset.name)">Delete</button></td>
   </tr>`).join('');
 }
 
@@ -1779,7 +1780,7 @@ function printPO(){
   const amendedAt = fmtDT(new Date());
   const amendedBy = (S.name || 'FINANCE').toUpperCase();
 
-  const addrLines = (r.supplier_address||'').split('\n').filter(l=>l.trim()).map(l=>`<div>${l}</div>`).join('');
+  const addrLines = (r.supplier_address||'').split('\n').filter(l=>l.trim()).map(l=>`<div>${esc(l)}</div>`).join('');
 
   const lines = (r.items||[]).map(l=>`
     <tr>
@@ -2044,8 +2045,8 @@ function previewCSV(input){
     document.getElementById('csv-count-msg').textContent=
       `${valid.length} user(s) ready to import${invalid.length?` · ${invalid.length} row(s) skipped (missing/invalid role)`:''}.`;
     document.getElementById('csv-preview-tbody').innerHTML=[
-      ...valid.map(r=>`<tr><td>${r.name}</td><td>${r.email}</td><td>${r.role}</td><td><span class="status s-authorised">Ready</span></td></tr>`),
-      ...invalid.map(r=>`<tr><td>${r.name||'—'}</td><td>${r.email||'—'}</td><td>${r.role||'(missing)'}</td><td><span class="status s-rejected">Skipped</span></td></tr>`)
+      ...valid.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.role)}</td><td><span class="status s-authorised">Ready</span></td></tr>`),
+      ...invalid.map(r=>`<tr><td>${esc(r.name||'—')}</td><td>${esc(r.email||'—')}</td><td>${esc(r.role||'(missing)')}</td><td><span class="status s-rejected">Skipped</span></td></tr>`)
     ].join('');
     document.getElementById('csv-preview-area').style.display='';
     if(valid.length) toast(`${valid.length} rows parsed — review then confirm.`);
