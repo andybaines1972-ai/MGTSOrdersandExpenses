@@ -1115,8 +1115,7 @@ async function loadHelpGuide(){
     const resp = await fetch('/user-guide.html');
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     const html = await resp.text();
-    const blob = new Blob([html], {type:'text/html'});
-    frame.src = URL.createObjectURL(blob);
+    frame.srcdoc = html;
     _guideLoaded = true;
   } catch(e) {
     frame.srcdoc = `<html><body style="font-family:Arial,sans-serif;padding:40px;color:#555;text-align:center">
