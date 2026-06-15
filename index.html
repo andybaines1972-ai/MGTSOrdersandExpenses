@@ -7,10 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
-  --orange:#f58220;
+  --orange:#FBBA00;
   --dark:#231f20;
-  --light:#fdf6ee;
-  --mid:#fde8cc;
+  --light:#fffef0;
+  --mid:#fff4c2;
   --grey:#6b7280;
   --border:#e5e7eb;
   --white:#ffffff;
@@ -30,7 +30,7 @@ h1,h2,h3{font-weight:600}
 .nav-brand{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .nav-squares{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:38px}
 .nav-sq{width:16px;height:16px;border-radius:3px}
-.nav-sq.w{background:#fff}
+.nav-sq.w{background:#888688}
 .nav-sq.o{background:var(--orange)}
 .nav-brand-text .brand-name{font-size:26px;font-weight:900;color:var(--orange);letter-spacing:-1.5px;line-height:1}
 .nav-brand-text .brand-full{font-size:10px;color:#aaa;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
@@ -41,7 +41,7 @@ h1,h2,h3{font-weight:600}
 #nav .spacer{flex:1}
 .nav-user{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .nav-user-name{font-size:13px;font-weight:600;color:var(--white)}
-.nav-role-badge{display:inline-block;background:rgba(245,130,32,.18);border:1px solid rgba(245,130,32,.4);color:var(--orange);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:capitalize}
+.nav-role-badge{display:inline-block;background:rgba(251,186,0,.18);border:1px solid rgba(251,186,0,.5);color:#8a6500;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:capitalize}
 .nav-btn{background:none;border:1px solid #555;color:#aaa;padding:6px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;transition:.2s;flex-shrink:0}
 .nav-btn:hover{border-color:var(--orange);color:var(--orange)}
 
@@ -67,8 +67,8 @@ h1,h2,h3{font-weight:600}
 .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .toolbar h2{flex:1;font-size:16px}
 .btn{padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-weight:600;font-size:13px;transition:.2s}
-.btn-primary{background:var(--orange);color:var(--white)}
-.btn-primary:hover{background:#d4701a}
+.btn-primary{background:var(--orange);color:var(--dark)}
+.btn-primary:hover{background:#d9a400}
 .btn-secondary{background:var(--white);color:var(--dark);border:1px solid var(--border)}
 .btn-secondary:hover{border-color:var(--orange);color:var(--orange)}
 .btn-success{background:var(--green);color:var(--white)}
@@ -114,7 +114,7 @@ tr:hover td{background:#fafafa}
 .form-group.full{grid-column:1/-1}
 label{font-size:12px;font-weight:600;color:var(--grey)}
 input,select,textarea{padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--white);transition:.2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 2px rgba(245,130,32,.15)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 2px rgba(251,186,0,.2)}
 input[readonly],select[disabled]{background:#f9fafb;color:var(--grey);cursor:default}
 textarea{resize:vertical;min-height:70px}
 
@@ -145,8 +145,8 @@ textarea{resize:vertical;min-height:70px}
 .login-box .form-group{margin-bottom:14px}
 .login-box label{display:block;font-size:12px;font-weight:600;color:var(--grey);margin-bottom:4px}
 .login-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px}
-.login-box .btn-login{width:100%;padding:11px;background:var(--orange);color:var(--white);border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
-.login-box .btn-login:hover{background:#d4701a}
+.login-box .btn-login{width:100%;padding:11px;background:var(--orange);color:var(--dark);border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+.login-box .btn-login:hover{background:#d9a400}
 .login-err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:18px}
 .login-footer{text-align:center;margin-top:18px;font-size:11px;color:#aaa}
 
@@ -201,6 +201,16 @@ textarea{resize:vertical;min-height:70px}
   /* ── stat cards ── */
   .stat-card h3{font-size:24px}
 }
+
+/* ── ADMIN INNER TABS ────────────────────────────── */
+.admin-inner-nav{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px}
+.admin-inner-tab{background:none;border:none;border-bottom:3px solid transparent;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:500;color:var(--grey);margin-bottom:-2px;transition:.2s;white-space:nowrap}
+.admin-inner-tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:700}
+.admin-inner-tab:hover:not(.active){color:var(--dark)}
+.debug-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.debug-card h3{font-size:12px;font-weight:700;color:var(--grey);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:4px}
+.audit-action{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
 
 /* ── CLICKABLE STAT CARDS ────────────────────────── */
 .stat-card.stat-link{cursor:pointer;transition:transform .15s,box-shadow .15s}
@@ -364,33 +374,108 @@ textarea{resize:vertical;min-height:70px}
 
     <!-- ── ADMIN ──────────────────────────────────── -->
     <div class="section" id="sec-admin">
-      <div class="toolbar"><h2>User Management</h2>
-        <label class="btn btn-secondary" for="csv-upload" style="cursor:pointer">📥 Import CSV</label>
-        <input type="file" id="csv-upload" accept=".csv,.txt" style="display:none" onchange="previewCSV(this)">
-        <button class="btn btn-secondary" onclick="downloadCSVTemplate()">📋 Template</button>
-        <button class="btn btn-secondary" onclick="exportAll()">📤 Export All</button>
-        <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+
+      <!-- Inner nav tabs -->
+      <div class="admin-inner-nav">
+        <button class="admin-inner-tab active" id="ait-users" onclick="showAdminTab('users')">Users</button>
+        <button class="admin-inner-tab" id="ait-audit" onclick="showAdminTab('audit')">Change Log</button>
+        <button class="admin-inner-tab" id="ait-debug" onclick="showAdminTab('debug')">System Debug</button>
       </div>
 
-      <!-- CSV import preview -->
-      <div id="csv-preview-area" class="table-wrap" style="margin-bottom:14px;display:none">
-        <div style="padding:12px 16px;background:#fff7ed;border-bottom:1px solid var(--mid);display:flex;align-items:center;gap:10px">
-          <span id="csv-count-msg" style="font-size:13px;font-weight:600;color:var(--dark);flex:1"></span>
-          <button class="btn btn-secondary btn-sm" onclick="cancelCSVImport()">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="runCSVImport()">Confirm Import</button>
+      <!-- ── USERS PANEL ── -->
+      <div id="admin-users-panel">
+        <div class="toolbar"><h2>User Management</h2>
+          <label class="btn btn-secondary" for="csv-upload" style="cursor:pointer">📥 Import CSV</label>
+          <input type="file" id="csv-upload" accept=".csv,.txt" style="display:none" onchange="previewCSV(this)">
+          <button class="btn btn-secondary" onclick="downloadCSVTemplate()">📋 Template</button>
+          <button class="btn btn-secondary" onclick="exportAll()">📤 Export All</button>
+          <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
         </div>
-        <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
-          <tbody id="csv-preview-tbody"></tbody>
-        </table>
+        <div id="csv-preview-area" class="table-wrap" style="margin-bottom:14px;display:none">
+          <div style="padding:12px 16px;background:var(--light);border-bottom:1px solid var(--mid);display:flex;align-items:center;gap:10px">
+            <span id="csv-count-msg" style="font-size:13px;font-weight:600;color:var(--dark);flex:1"></span>
+            <button class="btn btn-secondary btn-sm" onclick="cancelCSVImport()">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="runCSVImport()">Confirm Import</button>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+            <tbody id="csv-preview-tbody"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th><th></th><th></th></tr></thead>
+            <tbody id="user-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th><th></th><th></th></tr></thead>
-          <tbody id="user-tbody"></tbody>
-        </table>
+      <!-- ── AUDIT / CHANGE LOG PANEL ── -->
+      <div id="admin-audit-panel" style="display:none">
+        <div class="toolbar">
+          <h2>Change Log</h2>
+          <select id="audit-type-filter" class="filter" onchange="renderAuditLog()">
+            <option value="">All types</option>
+            <option value="purchase_request">Purchase Requests</option>
+            <option value="expense_claim">Expense Claims</option>
+            <option value="mileage_claim">Mileage Claims</option>
+            <option value="user">Users</option>
+          </select>
+          <input type="search" id="audit-search" placeholder="Search user or ref…" oninput="renderAuditLog()" style="width:180px">
+          <button class="btn btn-secondary" onclick="loadAuditLog()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date / Time</th><th>User</th><th>Action</th><th>Ref</th><th>Type</th><th>Details</th></tr></thead>
+            <tbody id="audit-tbody"><tr><td colspan="6"><div class="empty"><p>Loading…</p></div></td></tr></tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- ── DEBUG PANEL ── -->
+      <div id="admin-debug-panel" style="display:none">
+        <div class="toolbar"><h2>System Debug</h2>
+          <button class="btn btn-secondary" onclick="runHealthCheck()">↻ Run Health Check</button>
+        </div>
+
+        <div class="debug-card">
+          <h3>Database Health</h3>
+          <div id="debug-health-output"><p style="color:var(--grey);font-size:13px">Click "Run Health Check" to view DB status.</p></div>
+        </div>
+
+        <div class="debug-card">
+          <h3>Hard Delete Record</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Permanently removes any record regardless of status. Bypasses RLS. Use to clean up test/duplicate data.</p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="debug-del-table" class="filter">
+              <option value="purchase_requests">Purchase Requests</option>
+              <option value="expense_claims">Expense Claims</option>
+              <option value="mileage_claims">Mileage Claims</option>
+            </select>
+            <input type="text" id="debug-del-ref" placeholder="Ref number e.g. PRQ0001" style="flex:1;min-width:180px;text-transform:uppercase">
+            <button class="btn btn-danger" onclick="debugHardDelete()">Hard Delete</button>
+          </div>
+          <div id="debug-del-result" style="margin-top:10px;font-size:13px"></div>
+        </div>
+
+        <div class="debug-card">
+          <h3>User Sync Status</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Shows which users have a matching Supabase Auth login. Users without auth need an invite sent from the Users tab.</p>
+          <div id="debug-user-sync"><p style="font-size:13px;color:var(--grey)">Run health check to populate.</p></div>
+        </div>
+
+        <div class="debug-card" style="border-left:4px solid var(--amber)">
+          <h3 style="color:var(--amber)">Setup Checklist</h3>
+          <ul style="font-size:13px;color:var(--grey);line-height:2;padding-left:18px">
+            <li>Run <code>migrate-audit.sql</code> in Supabase SQL Editor to enable the Change Log</li>
+            <li>Ensure <code>SUPABASE_SERVICE_ROLE_KEY</code> and <code>SUPABASE_ANON_KEY</code> are set in Vercel Environment Variables</li>
+            <li>Ensure <code>RESEND_API_KEY</code> is set in Vercel Environment Variables for email notifications</li>
+            <li>To reset a user's password: use the ✉ Invite button in Users tab — it sends a magic link</li>
+            <li>To change a user's email or role: use Edit in Users tab — it syncs to Supabase Auth automatically</li>
+          </ul>
+        </div>
+      </div>
+
     </div>
 
   </div><!-- /main -->
@@ -1252,6 +1337,7 @@ async function savePR(){
   const { data: ins, error } = await _db.from('purchase_requests').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
   await uploadStagedFiles('pr', ins.id, 'purchase');
+  logAction('submitted','purchase_request',ins.id,ref,{supplier:row.supplier,total:row.total});
   toast(`${ref} submitted successfully.`);
   closeModal('pr-modal');
   if(authEmail) await sendEmail('Purchase Request Pending Your Approval', ref, by, sub+del, 'purchase_request', authEmail);
@@ -1272,6 +1358,9 @@ async function savePRFinance(id, setProcessed=true){
   if(setProcessed) upd.status = 'Processed';
   const { error } = await _db.from('purchase_requests').update(upd).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
+  const r = ALL_PR.find(x=>x.id===id);
+  if(setProcessed) logAction('processed','purchase_request',id,r?.ref_number,{po:upd.po_number,invoice:upd.invoice_number});
+  else logAction('updated','purchase_request',id,r?.ref_number,{finance_notes:upd.finance_notes});
   toast(setProcessed ? 'Purchase request processed.' : 'Details updated.');
   closeModal('pr-modal');
   await loadPR(); renderPR(); renderDash(); updateBadges();
@@ -1279,7 +1368,9 @@ async function savePRFinance(id, setProcessed=true){
 
 async function deletePR(id){
   if(!confirm('Delete this request?')) return;
+  const r = ALL_PR.find(x=>x.id===id);
   await _db.from('purchase_requests').delete().eq('id',id);
+  logAction('deleted','purchase_request',id,r?.ref_number,{});
   toast('Request deleted.'); closeModal('pr-modal');
   await loadPR(); renderPR(); renderDash(); updateBadges();
 }
@@ -1450,6 +1541,7 @@ async function saveEX(){
   const { data: ins, error } = await _db.from('expense_claims').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
   await uploadStagedFiles('ex', ins.id, 'expense');
+  logAction('submitted','expense_claim',ins.id,ref,{employee:emp,total:tot});
   toast(`${ref} submitted.`); closeModal('ex-modal');
   if(authEmail) await sendEmail('Expense Claim Pending Your Approval', ref, emp, tot, 'expense_claim', authEmail);
   await sendEmail('New Expense Claim Submitted', ref, emp, tot, 'expense_claim', FINANCE_EMAIL);
@@ -1462,6 +1554,8 @@ async function saveEXFinance(id){
     status: 'Processed', updated_at: new Date().toISOString()
   }).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
+  const exR = ALL_EX.find(x=>x.id===id);
+  logAction('processed','expense_claim',id,exR?.ref_number,{});
   toast('Expense claim processed.'); closeModal('ex-modal');
   await loadEX(); renderEX(); renderDash(); updateBadges();
 }
@@ -1722,6 +1816,7 @@ async function saveMI(){
   const { data: ins, error } = await _db.from('mileage_claims').insert(row).select('id').single();
   if(error){ toast(error.message,'err'); return; }
   await uploadStagedFiles('mi', ins.id, 'mileage');
+  logAction('submitted','mileage_claim',ins.id,ref,{employee:emp,miles:business,total:mileTot+nightTot});
   toast(`${ref} submitted.`); closeModal('mi-modal');
   await sendEmail('New Mileage Claim', ref, emp, mileTot+nightTot, 'mileage_claim');
   await loadMI(); renderMI(); renderDash(); updateBadges();
@@ -1733,6 +1828,8 @@ async function saveMIFinance(id){
     status: 'Processed', updated_at: new Date().toISOString()
   }).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
+  const miR = ALL_MI.find(x=>x.id===id);
+  logAction('processed','mileage_claim',id,miR?.ref_number,{});
   toast('Mileage claim processed.'); closeModal('mi-modal');
   await loadMI(); renderMI(); renderDash(); updateBadges();
 }
@@ -1751,6 +1848,9 @@ async function updateStatus(type, id, newStatus){
   };
   const { error } = await _db.from(tables[type]).update(upd).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
+  const refNum = (type==='PR'?ALL_PR:type==='EX'?ALL_EX:ALL_MI).find(x=>x.id===id)?.ref_number;
+  const rtMap  = {PR:'purchase_request',EX:'expense_claim',MI:'mileage_claim'};
+  logAction(newStatus.toLowerCase(), rtMap[type], id, refNum, {notes});
   toast(`Request ${newStatus.toLowerCase()}.`);
   closeModal({PR:'pr-modal',EX:'ex-modal',MI:'mi-modal'}[type]);
   await refreshAll();
@@ -1760,7 +1860,11 @@ async function updateStatus(type, id, newStatus){
 // ── GENERIC DELETE ────────────────────────────────────────
 async function deleteRecord(table, id, type){
   if(!confirm('Delete this record?')) return;
+  const all  = {PR:ALL_PR,EX:ALL_EX,MI:ALL_MI}[type];
+  const rec  = all?.find(x=>x.id===id);
+  const rtMap= {PR:'purchase_request',EX:'expense_claim',MI:'mileage_claim'};
   await _db.from(table).delete().eq('id',id);
+  logAction('deleted', rtMap[type]||table, id, rec?.ref_number, {});
   toast('Deleted.');
   closeModal({PR:'pr-modal',EX:'ex-modal',MI:'mi-modal'}[type]);
   await refreshAll();
@@ -1829,21 +1933,199 @@ function openUserModal(id){
 }
 
 async function saveUser(){
-  const id   = document.getElementById('um-id').value;
-  const name = document.getElementById('um-name').value.trim();
-  const email= document.getElementById('um-email').value.trim();
-  const role = document.getElementById('um-role').value;
-  const active = document.getElementById('um-active').value === 'true';
+  const id     = document.getElementById('um-id').value;
+  const name   = document.getElementById('um-name').value.trim();
+  const email  = document.getElementById('um-email').value.trim().toLowerCase();
+  const role   = document.getElementById('um-role').value;
+  const active = document.getElementById('um-active').value==='true';
   if(!name||!email){ toast('Name and email required.','err'); return; }
-  let error;
-  if(id){
-    ({error} = await _db.from('user_roles').update({name,email,role,is_active:active}).eq('id',id));
-  } else {
-    ({error} = await _db.from('user_roles').insert({name,email,role,is_active:active}));
-  }
-  if(error){ toast(error.message,'err'); return; }
-  toast('User saved.'); closeModal('user-modal');
+
+  const old_email = id ? ALL_USERS.find(u=>u.id===id)?.email : null;
+  const {data:{session}} = await _db.auth.getSession();
+  if(!session){ toast('Not signed in.','err'); return; }
+
+  try{
+    const r = await fetch('/api/update-user',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body: JSON.stringify({id,name,email,role,is_active:active,old_email})
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error||'Save failed');
+    if(j.authWarning) toast(j.authWarning,'err');
+    else toast(id ? `User updated — auth synced ✓` : `User added — send invite to set password.`);
+    logAction(id?'user_updated':'user_added','user',null,null,{email,role});
+  }catch(e){ toast(e.message,'err'); return; }
+
+  closeModal('user-modal');
   await loadUsers(); renderUsers();
+}
+
+// ── ADMIN INNER TABS ──────────────────────────────────────
+function showAdminTab(tab){
+  ['users','audit','debug'].forEach(t=>{
+    document.getElementById('admin-'+t+'-panel').style.display = t===tab?'':'none';
+    document.getElementById('ait-'+t)?.classList.toggle('active', t===tab);
+  });
+  if(tab==='audit') loadAuditLog();
+  if(tab==='debug') runHealthCheck();
+}
+
+// ── AUDIT LOG ─────────────────────────────────────────────
+let ALL_AUDIT = [];
+
+function logAction(action, recordType, recordId, refNumber, details={}){
+  if(!S.user) return;
+  _db.from('audit_log').insert({
+    user_email: S.user.email,
+    user_name:  S.name||S.user.email,
+    action,
+    record_type: recordType||null,
+    record_id:   recordId||null,
+    ref_number:  refNumber||null,
+    details
+  }).then(()=>{}).catch(()=>{});
+}
+
+async function loadAuditLog(){
+  document.getElementById('audit-tbody').innerHTML = '<tr><td colspan="6"><div class="empty"><div class="spinner"></div></div></td></tr>';
+  const {data,error} = await _db.from('audit_log')
+    .select('*')
+    .order('created_at',{ascending:false})
+    .limit(200);
+  if(error){
+    const isSetup = error.message.includes('does not exist') || error.message.includes('schema cache') || error.message.includes('audit_log');
+    const msg = isSetup
+      ? 'Change Log not set up yet — run <strong>migrate-audit.sql</strong> in the Supabase SQL Editor to enable this feature.'
+      : esc(error.message);
+    document.getElementById('audit-tbody').innerHTML = `<tr><td colspan="6"><div class="empty" style="padding:32px"><p>${msg}</p></div></td></tr>`;
+    return;
+  }
+  ALL_AUDIT = data||[];
+  renderAuditLog();
+}
+
+function renderAuditLog(){
+  const typeF  = document.getElementById('audit-type-filter')?.value||'';
+  const search = (document.getElementById('audit-search')?.value||'').toLowerCase();
+  const rows   = ALL_AUDIT.filter(r=>{
+    if(typeF   && r.record_type!==typeF) return false;
+    if(search  && !((r.user_name||r.user_email||'')+(r.ref_number||'')+(r.action||'')).toLowerCase().includes(search)) return false;
+    return true;
+  });
+  if(!rows.length){
+    document.getElementById('audit-tbody').innerHTML = '<tr><td colspan="6"><div class="empty"><p>No entries match your filter.</p></div></td></tr>';
+    return;
+  }
+  const fmtDT = s=>{ const d=new Date(s); return d.toLocaleDateString('en-GB')+' '+d.toTimeString().slice(0,8); };
+  const actionStyle = a=>{
+    if(['submitted'].includes(a))                      return 'background:#dcfce7;color:#166534';
+    if(['authorised'].includes(a))                     return 'background:#d1fae5;color:#065f46';
+    if(['processed'].includes(a))                      return 'background:#dbeafe;color:#1e3a8a';
+    if(['rejected','deleted','hard_deleted'].includes(a)) return 'background:#fee2e2;color:#7f1d1d';
+    if(['user_added','user_updated'].includes(a))      return 'background:#ede9fe;color:#4c1d95';
+    return 'background:#f3f4f6;color:#374151';
+  };
+  document.getElementById('audit-tbody').innerHTML = rows.map(r=>`<tr>
+    <td style="font-size:11px;white-space:nowrap;color:var(--grey)">${fmtDT(r.created_at)}</td>
+    <td style="font-size:12px">${esc(r.user_name||r.user_email)}</td>
+    <td><span class="audit-action" style="${actionStyle(r.action)}">${esc(r.action)}</span></td>
+    <td>${r.ref_number?`<span class="ref">${esc(r.ref_number)}</span>`:'—'}</td>
+    <td style="font-size:12px;color:var(--grey)">${esc(r.record_type||'—')}</td>
+    <td style="font-size:11px;color:var(--grey);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${esc(JSON.stringify(r.details||{}))}">${r.details&&Object.keys(r.details).length?esc(JSON.stringify(r.details)):''}</td>
+  </tr>`).join('');
+}
+
+// ── SYSTEM DEBUG ──────────────────────────────────────────
+async function runHealthCheck(){
+  const el = document.getElementById('debug-health-output');
+  if(!el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+
+  const [pr,ex,mi,users] = await Promise.all([
+    _db.from('purchase_requests').select('status'),
+    _db.from('expense_claims').select('status'),
+    _db.from('mileage_claims').select('status'),
+    _db.from('user_roles').select('email,role,is_active')
+  ]);
+
+  const byStatus = data=>{
+    const m={};
+    (data||[]).forEach(r=>{ m[r.status]=(m[r.status]||0)+1; });
+    return m;
+  };
+  const renderStat = (label, data, err)=>{
+    if(err) return `<div class="stat-card"><h3 style="font-size:18px;color:var(--red)">!</h3><p>${label}</p><div style="font-size:11px;color:var(--red);margin-top:6px">${esc(err)}</div></div>`;
+    const counts = byStatus(data);
+    return `<div class="stat-card">
+      <h3 style="font-size:22px">${(data||[]).length}</h3><p>${label}</p>
+      <div style="margin-top:8px;font-size:11px;color:var(--grey)">
+        ${Object.entries(counts).map(([s,n])=>`${s}: <strong>${n}</strong>`).join(' &nbsp;·&nbsp; ')||'—'}
+      </div></div>`;
+  };
+
+  const userRows = users.data||[];
+  const roleCount = {};
+  userRows.forEach(u=>{ roleCount[u.role]=(roleCount[u.role]||0)+1; });
+
+  el.innerHTML = `
+    <div class="health-grid">
+      ${renderStat('Purchase Requests', pr.data, pr.error?.message)}
+      ${renderStat('Expense Claims',    ex.data, ex.error?.message)}
+      ${renderStat('Mileage Claims',    mi.data, mi.error?.message)}
+      <div class="stat-card">
+        <h3 style="font-size:22px">${userRows.length}</h3><p>Hub Users</p>
+        <div style="margin-top:8px;font-size:11px;color:var(--grey)">
+          ${Object.entries(roleCount).map(([r,n])=>`${r}: <strong>${n}</strong>`).join(' &nbsp;·&nbsp; ')||'—'}
+        </div>
+        <div style="margin-top:6px;font-size:11px"><strong style="color:var(--green)">DB Connected ✓</strong></div>
+      </div>
+    </div>`;
+
+  // Populate user sync panel
+  const syncEl = document.getElementById('debug-user-sync');
+  if(syncEl){
+    syncEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--border)">Name / Email</th>
+        <th style="text-align:left;padding:6px;border-bottom:1px solid var(--border)">Role</th>
+        <th style="text-align:left;padding:6px;border-bottom:1px solid var(--border)">Active</th>
+        <th style="text-align:left;padding:6px;border-bottom:1px solid var(--border)">Action</th></tr></thead>
+      <tbody>
+        ${userRows.map(u=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px">${esc(u.email)}</td>
+          <td style="padding:6px;text-transform:capitalize">${esc(u.role)}</td>
+          <td style="padding:6px">${u.is_active?'<span style="color:var(--green)">Yes</span>':'<span style="color:var(--red)">No</span>'}</td>
+          <td style="padding:6px"><button class="btn btn-sm btn-secondary"
+            onclick="sendInvite('','${esc(u.email)}','${esc(u.role)}')" title="Send/resend login invite">✉ Invite</button></td>
+        </tr>`).join('')}
+      </tbody></table>`;
+  }
+}
+
+async function debugHardDelete(){
+  const table = document.getElementById('debug-del-table').value;
+  const ref   = document.getElementById('debug-del-ref').value.trim().toUpperCase();
+  const resEl = document.getElementById('debug-del-result');
+  if(!ref){ toast('Enter a ref number.','err'); return; }
+  if(!confirm(`Permanently delete ${ref} from ${table.replace(/_/g,' ')}?\n\nThis cannot be undone.`)) return;
+  const {data:{session}} = await _db.auth.getSession();
+  if(!session){ toast('Not signed in.','err'); return; }
+  resEl.textContent = 'Deleting…';
+  try{
+    const r = await fetch('/api/admin-delete',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body: JSON.stringify({table, ref_number: ref})
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error||'Delete failed');
+    resEl.innerHTML = `<span style="color:var(--green)">✓ ${ref} permanently deleted.</span>`;
+    document.getElementById('debug-del-ref').value = '';
+    logAction('hard_deleted', table.replace('_',' '), null, ref, {via:'debug_tool'});
+  }catch(e){
+    resEl.innerHTML = `<span style="color:var(--red)">✗ ${esc(e.message)}</span>`;
+  }
 }
 
 // ── EMAIL ─────────────────────────────────────────────────
