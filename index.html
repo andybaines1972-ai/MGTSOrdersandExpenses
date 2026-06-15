@@ -489,6 +489,10 @@ textarea{resize:vertical;min-height:70px}
             <input type="text" id="pr-po">
           </div>
           <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="pr-invoice" placeholder="e.g. INV-12345">
+          </div>
+          <div class="form-group">
             <label>NL Code</label>
             <input type="text" id="pr-nl">
           </div>
@@ -1101,7 +1105,7 @@ async function openPRModal(id){
   document.getElementById('pr-delivery').value = r.delivery_cost||0;
 
   // load lines
-  const lines = r.items||[];
+  const lines = Array.isArray(r.items) ? r.items : JSON.parse(r.items||'[]');
   lines.forEach(()=>addPRLine());
   const trs = document.getElementById('pr-lines-body').querySelectorAll('tr');
   lines.forEach((ln,i)=>{
@@ -1114,7 +1118,7 @@ async function openPRModal(id){
 
   // request fields always readonly on existing records; only finance/auth fields are editable
   document.querySelectorAll('#pr-modal input:not([type=hidden]),#pr-modal select,#pr-modal textarea').forEach(el=>{
-    if(!el.id.startsWith('pr-po')&&!el.id.startsWith('pr-nl')&&!el.id.startsWith('pr-pl')&&
+    if(!el.id.startsWith('pr-po')&&!el.id.startsWith('pr-invoice')&&!el.id.startsWith('pr-nl')&&!el.id.startsWith('pr-pl')&&
        !el.id.startsWith('pr-payment')&&!el.id.startsWith('pr-finance')&&!el.id.startsWith('pr-auth')){
       el.readOnly = true; if(el.tagName==='SELECT') el.disabled = true;
     }
@@ -1123,16 +1127,24 @@ async function openPRModal(id){
   // finance panel
   if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
     document.getElementById('pr-finance-panel').style.display = '';
-    document.getElementById('pr-po').value = r.po_number||'';
-    document.getElementById('pr-nl').value = r.nl_code||'';
-    document.getElementById('pr-pl').value = r.pl_account||'';
+    document.getElementById('pr-po').value      = r.po_number||'';
+    document.getElementById('pr-invoice').value = r.invoice_number||'';
+    document.getElementById('pr-nl').value      = r.nl_code||'';
+    document.getElementById('pr-pl').value      = r.pl_account||'';
     document.getElementById('pr-payment').value = r.payment_method||'';
     document.getElementById('pr-finance-notes').value = r.finance_notes||'';
   }
 
-  // authoriser notes
+  // authoriser notes — editable for authoriser on Pending; read-only summary for everyone once decided
   if(S.role==='authoriser' && r.status==='Pending'){
     document.getElementById('pr-auth-note-group').style.display = '';
+    document.getElementById('pr-auth-notes').readOnly = false;
+  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+    document.getElementById('pr-auth-note-group').style.display = '';
+    document.querySelector('#pr-auth-note-group label').textContent =
+      (r.status==='Rejected' ? 'Rejected' : 'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.getElementById('pr-auth-notes').value = r.authoriser_notes||'No notes added.';
+    document.getElementById('pr-auth-notes').readOnly = true;
   }
 
   // footer buttons
@@ -1142,7 +1154,10 @@ async function openPRModal(id){
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
   if(S.role==='finance' && r.status==='Authorised'){
-    btns += `<button class="btn btn-primary" onclick="savePRFinance('${r.id}')">Save & Process</button>`;
+    btns += `<button class="btn btn-primary" onclick="savePRFinance('${r.id}',true)">Save & Process</button>`;
+  }
+  if(S.role==='finance' && r.status==='Processed'){
+    btns += `<button class="btn btn-secondary" onclick="savePRFinance('${r.id}',false)">Update Details</button>`;
   }
   if(r.requested_by_email===S.user.email && r.status==='Pending'){
     btns += `<button class="btn btn-danger" onclick="deletePR('${r.id}')">Delete</button>`;
@@ -1230,19 +1245,21 @@ async function savePR(){
   await loadPR(); renderPR(); renderDash(); updateBadges();
 }
 
-async function savePRFinance(id){
+async function savePRFinance(id, setProcessed=true){
   const upd = {
-    po_number: document.getElementById('pr-po').value.trim(),
-    nl_code: document.getElementById('pr-nl').value.trim(),
-    pl_account: document.getElementById('pr-pl').value.trim(),
+    po_number:      document.getElementById('pr-po').value.trim(),
+    invoice_number: document.getElementById('pr-invoice').value.trim(),
+    nl_code:        document.getElementById('pr-nl').value.trim(),
+    pl_account:     document.getElementById('pr-pl').value.trim(),
     payment_method: document.getElementById('pr-payment').value,
-    finance_notes: document.getElementById('pr-finance-notes').value.trim(),
-    status: 'Processed',
-    updated_at: new Date().toISOString()
+    finance_notes:  document.getElementById('pr-finance-notes').value.trim(),
+    updated_at:     new Date().toISOString()
   };
+  if(setProcessed) upd.status = 'Processed';
   const { error } = await _db.from('purchase_requests').update(upd).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
-  toast('Purchase request processed.'); closeModal('pr-modal');
+  toast(setProcessed ? 'Purchase request processed.' : 'Details updated.');
+  closeModal('pr-modal');
   await loadPR(); renderPR(); renderDash(); updateBadges();
 }
 
@@ -1307,7 +1324,7 @@ async function openEXModal(id){
   document.getElementById('ex-department').value = r.department||'';
   document.getElementById('ex-month').value = r.claim_month||nowMonth();
 
-  const lines = r.items||[];
+  const lines = Array.isArray(r.items) ? r.items : JSON.parse(r.items||'[]');
   lines.forEach(()=>addEXLine());
   const trs = document.getElementById('ex-lines-body').querySelectorAll('tr');
   lines.forEach((ln,i)=>{
@@ -1326,6 +1343,13 @@ async function openEXModal(id){
   }
   if(S.role==='authoriser' && r.status==='Pending'){
     document.getElementById('ex-auth-note-group').style.display = '';
+    document.getElementById('ex-auth-notes').readOnly = false;
+  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+    document.getElementById('ex-auth-note-group').style.display = '';
+    document.querySelector('#ex-auth-note-group label').textContent =
+      (r.status==='Rejected'?'Rejected':'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.getElementById('ex-auth-notes').value = r.authoriser_notes||'No notes added.';
+    document.getElementById('ex-auth-notes').readOnly = true;
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
@@ -1495,7 +1519,7 @@ async function openMIModal(id){
   document.getElementById('mi-overnights').value = r.overnight_stays||0;
   document.getElementById('mi-commute').value = r.commute_miles||'';
 
-  const journeys = r.journeys||[];
+  const journeys = Array.isArray(r.journeys) ? r.journeys : JSON.parse(r.journeys||'[]');
   journeys.forEach(()=>addMIJourney());
   const trs = document.getElementById('mi-journeys-body').querySelectorAll('tr');
   journeys.forEach((j,i)=>{
@@ -1512,6 +1536,13 @@ async function openMIModal(id){
   }
   if(S.role==='authoriser' && r.status==='Pending'){
     document.getElementById('mi-auth-note-group').style.display = '';
+    document.getElementById('mi-auth-notes').readOnly = false;
+  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+    document.getElementById('mi-auth-note-group').style.display = '';
+    document.querySelector('#mi-auth-note-group label').textContent =
+      (r.status==='Rejected'?'Rejected':'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.getElementById('mi-auth-notes').value = r.authoriser_notes||'No notes added.';
+    document.getElementById('mi-auth-notes').readOnly = true;
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('mi-modal')">Close</button>`;
@@ -1782,7 +1813,7 @@ function printPO(){
 
   const addrLines = (r.supplier_address||'').split('\n').filter(l=>l.trim()).map(l=>`<div>${esc(l)}</div>`).join('');
 
-  const lines = (r.items||[]).map(l=>`
+  const lines = (Array.isArray(r.items) ? r.items : JSON.parse(r.items||'[]')).map(l=>`
     <tr>
       <td>${r.ref_number}</td>
       <td>${r.supplier_ref||''}</td>
@@ -1978,8 +2009,8 @@ function downloadCSV(rows, filename){
 function exportPR(){
   if(!ALL_PR.length){ toast('No purchase requests to export.','err'); return; }
   downloadCSV([
-    ['Ref','Date','Requested By','Department','Supplier','Supplier Email','Supplier Link','Subtotal (£)','Delivery (£)','Total (£)','Status','Authorised By','Auth Date','PO Number','NL Code','PL A/C','Payment Method','Finance Notes'],
-    ...ALL_PR.map(r=>[r.ref_number,r.request_date,r.requested_by,r.department||'',r.supplier||'',r.supplier_email||'',r.supplier_link||'',r.subtotal||0,r.delivery_cost||0,r.total,r.status,r.authorised_by||'',r.authorised_date||'',r.po_number||'',r.nl_code||'',r.pl_account||'',r.payment_method||'',r.finance_notes||''])
+    ['Ref','Date','Requested By','Department','Supplier','Supplier Email','Supplier Link','Subtotal (£)','Delivery (£)','Total (£)','Status','Authorised By','Auth Date','Auth Notes','PO Number','Invoice Number','NL Code','PL A/C','Payment Method','Finance Notes'],
+    ...ALL_PR.map(r=>[r.ref_number,r.request_date,r.requested_by,r.department||'',r.supplier||'',r.supplier_email||'',r.supplier_link||'',r.subtotal||0,r.delivery_cost||0,r.total,r.status,r.authorised_by||'',r.authorised_date||'',r.authoriser_notes||'',r.po_number||'',r.invoice_number||'',r.nl_code||'',r.pl_account||'',r.payment_method||'',r.finance_notes||''])
   ],`MGTS-Purchase-Requests-${today()}.csv`);
   toast('Purchase requests exported.');
 }
