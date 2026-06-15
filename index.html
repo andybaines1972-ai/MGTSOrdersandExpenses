@@ -290,6 +290,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="tab" onclick="showTab('expense')" id="tab-expense">Expense Claims <span class="badge" id="badge-ex">0</span></div>
     <div class="tab" onclick="showTab('mileage')" id="tab-mileage">Mileage Claims <span class="badge" id="badge-mi">0</span></div>
     <div class="tab" id="tab-admin" style="display:none" onclick="showTab('admin')">Admin</div>
+    <div class="tab" id="tab-help" onclick="showTab('help')">Help &amp; Guide</div>
   </div>
 
   <div id="main">
@@ -370,6 +371,13 @@ textarea{resize:vertical;min-height:70px}
           <tbody id="mi-tbody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ── HELP & GUIDE ──────────────────────────── -->
+    <div class="section" id="sec-help" style="padding:0;margin:-20px -32px">
+      <iframe id="guide-frame" src="/user-guide.html"
+        style="width:100%;height:calc(100vh - 108px);border:none;display:block"
+        title="MGTS User Guide"></iframe>
     </div>
 
     <!-- ── ADMIN ──────────────────────────────────── -->
@@ -462,6 +470,20 @@ textarea{resize:vertical;min-height:70px}
           <h3>User Sync Status</h3>
           <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Shows which users have a matching Supabase Auth login. Users without auth need an invite sent from the Users tab.</p>
           <div id="debug-user-sync"><p style="font-size:13px;color:var(--grey)">Run health check to populate.</p></div>
+        </div>
+
+        <div class="debug-card">
+          <h3>System Walkthrough — Step-by-Step Verification</h3>
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">Runs each component in sequence and reports pass/fail. Requires Vercel functions to be deployed.</p>
+          <button class="btn btn-primary" onclick="runWalkthrough()" id="walkthrough-btn">Run Walkthrough</button>
+          <div id="walkthrough-steps" style="margin-top:14px;display:grid;gap:8px"></div>
+        </div>
+
+        <div class="debug-card">
+          <h3>Error Code Reference</h3>
+          <input type="search" id="err-search" placeholder="Search by error message or code…"
+            oninput="filterErrors()" style="width:100%;margin-bottom:12px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
+          <div id="error-list"></div>
         </div>
 
         <div class="debug-card" style="border-left:4px solid var(--amber)">
@@ -1968,7 +1990,7 @@ function showAdminTab(tab){
     document.getElementById('ait-'+t)?.classList.toggle('active', t===tab);
   });
   if(tab==='audit') loadAuditLog();
-  if(tab==='debug') runHealthCheck();
+  if(tab==='debug'){ runHealthCheck(); renderErrors(); }
 }
 
 // ── AUDIT LOG ─────────────────────────────────────────────
@@ -2126,6 +2148,203 @@ async function debugHardDelete(){
   }catch(e){
     resEl.innerHTML = `<span style="color:var(--red)">✗ ${esc(e.message)}</span>`;
   }
+}
+
+// ── SYSTEM WALKTHROUGH ────────────────────────────────────
+async function runWalkthrough(){
+  const btn   = document.getElementById('walkthrough-btn');
+  const panel = document.getElementById('walkthrough-steps');
+  btn.disabled = true; btn.textContent = 'Running…';
+  panel.innerHTML = '';
+
+  const step = (label, status, detail)=>{
+    const colour = status==='pass'?'var(--green)':status==='fail'?'var(--red)':'var(--amber)';
+    const icon   = status==='pass'?'✓':status==='fail'?'✗':'⚠';
+    panel.insertAdjacentHTML('beforeend',`
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#f9fafb;border:1px solid var(--border);border-left:4px solid ${colour};border-radius:var(--radius);padding:10px 14px">
+        <span style="font-size:16px;color:${colour};flex-shrink:0;line-height:1.4">${icon}</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--dark)">${label}</div>
+          ${detail?`<div style="font-size:12px;color:var(--grey);margin-top:2px">${detail}</div>`:''}
+        </div>
+      </div>`);
+  };
+
+  // 1. Supabase connection
+  try{
+    const {count,error} = await _db.from('user_roles').select('*',{count:'exact',head:true});
+    if(error) step('Supabase DB connection','fail','Error: '+error.message);
+    else       step('Supabase DB connection','pass',`Connected — ${count} users in user_roles`);
+  }catch(e){ step('Supabase DB connection','fail',e.message); }
+
+  // 2. Auth session
+  try{
+    const {data:{user}} = await _db.auth.getUser();
+    if(user) step('Auth session','pass','Signed in as '+user.email);
+    else     step('Auth session','fail','No active session — sign out and back in');
+  }catch(e){ step('Auth session','fail',e.message); }
+
+  // 3. Service role / next-ref API
+  try{
+    const {data:{session}} = await _db.auth.getSession();
+    const r = await fetch('/api/next-ref',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body: JSON.stringify({prefix:'PRQ'})
+    });
+    const j = await r.json();
+    if(r.ok && j.ref) step('Vercel function & service role key','pass',`/api/next-ref responded — next ref would be ${j.ref}`);
+    else               step('Vercel function & service role key','fail','Error: '+(j.error||r.status)+' — check SUPABASE_SERVICE_ROLE_KEY in Vercel env vars');
+  }catch(e){ step('Vercel function & service role key','warn','Could not reach /api/next-ref — may be running locally'); }
+
+  // 4. Audit log table
+  try{
+    const {error} = await _db.from('audit_log').select('id',{head:true,count:'exact'});
+    if(!error) step('Audit log table (audit_log)','pass','Table exists — Change Log is active');
+    else if(error.message.includes('schema cache')||error.message.includes('does not exist'))
+      step('Audit log table (audit_log)','fail','Not created yet — run migrate-audit.sql in Supabase SQL Editor');
+    else
+      step('Audit log table (audit_log)','fail',error.message);
+  }catch(e){ step('Audit log table (audit_log)','fail',e.message); }
+
+  // 5. Email API
+  try{
+    const {data:{session}} = await _db.auth.getSession();
+    const r = await fetch('/api/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({to:'test@test.invalid',subject:'[Test]',html:'<p>Test</p>',_dryRun:true})
+    });
+    const j = await r.json();
+    if(r.ok || (j.error&&!j.error.includes('RESEND_API_KEY')))
+      step('Email API (Resend)','pass','RESEND_API_KEY is configured');
+    else
+      step('Email API (Resend)','fail','RESEND_API_KEY not set — add to Vercel env vars');
+  }catch(e){ step('Email API (Resend)','warn','Could not test email API — check RESEND_API_KEY in Vercel env vars'); }
+
+  // 6. Postcode API
+  try{
+    const r = await fetch('https://api.postcodes.io/postcodes/CV12WT');
+    const j = await r.json();
+    if(j.status===200) step('Postcode API (postcodes.io)','pass','Reached api.postcodes.io — distance calculator active');
+    else               step('Postcode API (postcodes.io)','warn','postcodes.io returned status '+j.status);
+  }catch(e){ step('Postcode API (postcodes.io)','fail','Cannot reach api.postcodes.io — '+e.message); }
+
+  btn.disabled = false; btn.textContent = 'Run Walkthrough';
+}
+
+// ── ERROR CODE REFERENCE ──────────────────────────────────
+const ERROR_CODES = [
+  // Auth
+  { code:'AUTH-001', pattern:'Invalid login credentials',    sev:'warn',
+    title:'Wrong email or password',
+    desc:'The email/password combination was not recognised.',
+    fix:'Double-check spelling. Then use <strong>Admin → Users → ✉ Invite</strong> to send a password reset link to the user.' },
+  { code:'AUTH-002', pattern:'Email not confirmed',          sev:'warn',
+    title:'Account not yet activated',
+    desc:'User received an invite but hasn\'t clicked the confirmation link in the email.',
+    fix:'Ask them to check inbox (and spam). Re-send from <strong>Admin → Users → ✉ Invite</strong>.' },
+  { code:'AUTH-003', pattern:'JWT expired',                  sev:'info',
+    title:'Login session expired',
+    desc:'Session timed out after inactivity.',
+    fix:'Sign out and sign back in.' },
+  { code:'AUTH-004', pattern:'Not authenticated',            sev:'warn',
+    title:'Auth token missing',
+    desc:'No valid session was found when calling a server function.',
+    fix:'Sign out and sign back in. If persists, clear browser cache.' },
+  // Database
+  { code:'DB-001',   pattern:'audit_log',                   sev:'setup',
+    title:'Audit log table not found',
+    desc:'The audit_log table doesn\'t exist in Supabase yet.',
+    fix:'Run <strong>migrate-audit.sql</strong> in Supabase Dashboard → SQL Editor → New Query.' },
+  { code:'DB-002',   pattern:'duplicate key value',          sev:'error',
+    title:'Duplicate reference number',
+    desc:'A record with this ref number already exists — usually old test data with mismatched formats.',
+    fix:'Use <strong>Debug → Hard Delete</strong> to remove the conflicting record, then retry.' },
+  { code:'DB-003',   pattern:'row-level security policy',    sev:'error',
+    title:'Access denied by RLS',
+    desc:'Your account doesn\'t have permission to read or write this record.',
+    fix:'Check your role in Admin → Users. Finance sees all; requestors see only their own records.' },
+  { code:'DB-004',   pattern:'schema cache',                 sev:'error',
+    title:'Table not in Supabase schema cache',
+    desc:'The table exists in Postgres but Supabase\'s PostgREST hasn\'t picked it up yet.',
+    fix:'Wait 30 seconds and try again. Or run a PostgREST schema reload in Supabase Dashboard.' },
+  // Vercel / API
+  { code:'API-001',  pattern:'FUNCTION_INVOCATION_FAILED',   sev:'error',
+    title:'Vercel function crashed',
+    desc:'A serverless function failed — usually a missing environment variable.',
+    fix:'Check Vercel Dashboard → Project → Settings → Environment Variables. All three keys must be present: <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>SUPABASE_ANON_KEY</code>, <code>RESEND_API_KEY</code>.' },
+  { code:'API-002',  pattern:'SERVICE_KEY not configured',   sev:'error',
+    title:'Missing service role key',
+    desc:'SUPABASE_SERVICE_ROLE_KEY is absent from Vercel environment variables.',
+    fix:'Vercel Dashboard → Project → Settings → Environment Variables → Add <code>SUPABASE_SERVICE_ROLE_KEY</code>.' },
+  { code:'API-003',  pattern:'Finance role required',        sev:'warn',
+    title:'Finance role required',
+    desc:'This action (hard delete, user management, sequential refs) requires a Finance account.',
+    fix:'Sign in with a Finance account, or update the user\'s role in Admin → Users.' },
+  { code:'API-004',  pattern:'Method not allowed',           sev:'info',
+    title:'Wrong HTTP method',
+    desc:'An API endpoint was called with GET instead of POST (or vice versa).',
+    fix:'This is an internal error — reload the page. If it persists, contact your developer.' },
+  // Email
+  { code:'EML-001',  pattern:'RESEND_API_KEY',               sev:'warn',
+    title:'Email not configured',
+    desc:'RESEND_API_KEY is missing from Vercel, so notification emails cannot be sent.',
+    fix:'Vercel Dashboard → Environment Variables → Add <code>RESEND_API_KEY</code>. Domain must also be verified in Resend dashboard.' },
+  // Postcode / Distance
+  { code:'PCT-001',  pattern:'Postcode not found',           sev:'warn',
+    title:'Invalid UK postcode',
+    desc:'The postcode was not found in the Royal Mail database.',
+    fix:'Check it\'s a valid UK postcode (e.g. CV1 2WT). Spaces are optional. Partial postcodes won\'t work.' },
+  { code:'PCT-002',  pattern:'Route could not be calculated', sev:'info',
+    title:'No driving route found',
+    desc:'OSRM could not find a road route between the two postcodes.',
+    fix:'Enter mileage manually. This can happen for very remote locations, islands, or ferry crossings.' },
+  { code:'PCT-003',  pattern:'Could not calculate distance', sev:'warn',
+    title:'Distance API unreachable',
+    desc:'Network connection to postcodes.io or router.project-osrm.org timed out.',
+    fix:'Check your internet connection and try again. Enter mileage manually as a fallback.' },
+  // General
+  { code:'GEN-001',  pattern:'not found in',                sev:'info',
+    title:'Record not found',
+    desc:'The requested record no longer exists — it may have been deleted.',
+    fix:'Refresh the page. If the issue persists, check with your Finance admin.' },
+  { code:'GEN-002',  pattern:'Failed to fetch',             sev:'warn',
+    title:'Network request failed',
+    desc:'The browser could not reach the server — no internet connection or Vercel is down.',
+    fix:'Check your internet connection. Visit https://vercel-status.com to check for outages.' },
+];
+
+let _errFiltered = [...ERROR_CODES];
+function filterErrors(){
+  const q = (document.getElementById('err-search')?.value||'').toLowerCase();
+  _errFiltered = q
+    ? ERROR_CODES.filter(e=> (e.code+e.pattern+e.title+e.desc+e.fix).toLowerCase().includes(q))
+    : [...ERROR_CODES];
+  renderErrors();
+}
+
+function renderErrors(){
+  const el = document.getElementById('error-list');
+  if(!el) return;
+  if(!_errFiltered.length){ el.innerHTML='<p style="color:var(--grey);font-size:13px">No errors match your search.</p>'; return; }
+  const sevStyle = s=>({
+    error: 'background:#fee2e2;color:#7f1d1d;border-left-color:#dc2626',
+    warn:  'background:#fef9e7;color:#78350f;border-left-color:#d97706',
+    info:  'background:#eff6ff;color:#1e3a8a;border-left-color:#3b82f6',
+    setup: 'background:#faf5ff;color:#4c1d95;border-left-color:#7c3aed',
+  }[s]||'background:#f3f4f6;color:#374151;border-left-color:#6b7280');
+
+  el.innerHTML = _errFiltered.map(e=>`
+    <div style="${sevStyle(e.sev)};border-left:4px solid;border-radius:6px;padding:12px 16px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <code style="font-size:11px;font-weight:700;background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px">${esc(e.code)}</code>
+        <strong style="font-size:13px">${esc(e.title)}</strong>
+      </div>
+      <p style="font-size:12px;margin-bottom:4px;opacity:.85"><em>Triggers on:</em> "${esc(e.pattern)}"</p>
+      <p style="font-size:12px;margin-bottom:6px">${esc(e.desc)}</p>
+      <p style="font-size:12px"><strong>Fix:</strong> ${e.fix}</p>
+    </div>`).join('');
 }
 
 // ── EMAIL ─────────────────────────────────────────────────
