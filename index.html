@@ -383,7 +383,7 @@ textarea{resize:vertical;min-height:70px}
 
     <!-- ── HELP & GUIDE ──────────────────────────── -->
     <div class="section" id="sec-help" style="padding:0;margin:-20px -32px">
-      <iframe id="guide-frame" src="/user-guide.html"
+      <iframe id="guide-frame" src="about:blank"
         style="width:100%;height:calc(100vh - 146px);border:none;display:block"
         title="MGTS User Guide"></iframe>
     </div>
@@ -1103,6 +1103,27 @@ function showTab(t){
   if(t==='expense')  renderEX();
   if(t==='mileage')  renderMI();
   if(t==='admin')    renderUsers();
+  if(t==='help')     loadHelpGuide();
+}
+
+let _guideLoaded = false;
+async function loadHelpGuide(){
+  if(_guideLoaded) return;
+  const frame = document.getElementById('guide-frame');
+  if(!frame) return;
+  try {
+    const resp = await fetch('/user-guide.html');
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const html = await resp.text();
+    const blob = new Blob([html], {type:'text/html'});
+    frame.src = URL.createObjectURL(blob);
+    _guideLoaded = true;
+  } catch(e) {
+    frame.srcdoc = `<html><body style="font-family:Arial,sans-serif;padding:40px;color:#555;text-align:center">
+      <p style="margin-bottom:12px">Could not load the guide.</p>
+      <a href="/user-guide.html" target="_blank" style="color:#FBBA00;font-weight:700">Open Help Guide in new tab →</a>
+    </body></html>`;
+  }
 }
 
 function goTo(tab, filterId, filterVal){
