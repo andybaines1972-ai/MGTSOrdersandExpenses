@@ -691,7 +691,7 @@ textarea{resize:vertical;min-height:70px}
 
       <table class="line-table">
         <thead><tr>
-          <th>Date</th><th style="width:35%">Description / Route</th>
+          <th>Date</th><th>From / To Postcode &amp; Description</th>
           <th>Miles</th><th></th>
         </tr></thead>
         <tbody id="mi-journeys-body"></tbody>
@@ -1498,6 +1498,28 @@ async function openMIModal(id){
     document.getElementById('mi-overnights').value = 0;
     document.getElementById('mi-reg').value = '';
     addMIJourney();
+    // Pre-fill start mileage + vehicle from previous claim
+    _db.from('mileage_claims')
+       .select('month_end_mileage,vehicle_reg,mileage_rate')
+       .eq('employee_email', S.user.email)
+       .order('created_at',{ascending:false})
+       .limit(1)
+       .then(({data})=>{
+         const prev = data?.[0];
+         if(!prev) return;
+         if(prev.month_end_mileage){
+           document.getElementById('mi-start').value = prev.month_end_mileage;
+           calcMITotals();
+         }
+         if(prev.vehicle_reg) document.getElementById('mi-reg').value = prev.vehicle_reg;
+         if(prev.mileage_rate){
+           document.getElementById('mi-vtype').value = prev.mileage_rate;
+           document.getElementById('mi-rate').value  = prev.mileage_rate;
+           calcMITotals();
+         }
+         if(prev.month_end_mileage||prev.vehicle_reg)
+           toast('Pre-filled from your last mileage claim.');
+       }).catch(()=>{});
     footer.innerHTML = `
       <button class="btn btn-secondary" onclick="closeModal('mi-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveMI()">Submit Claim</button>`;
@@ -1524,9 +1546,11 @@ async function openMIModal(id){
   const trs = document.getElementById('mi-journeys-body').querySelectorAll('tr');
   journeys.forEach((j,i)=>{
     if(!trs[i]) return;
-    trs[i].querySelector('.mi-jdate').value = j.date||'';
-    trs[i].querySelector('.mi-jdesc').value = j.description||'';
-    trs[i].querySelector('.mi-jmiles').value= j.miles||0;
+    trs[i].querySelector('.mi-jdate').value  = j.date||'';
+    trs[i].querySelector('.mi-jfrom').value  = j.from_postcode||'';
+    trs[i].querySelector('.mi-jto').value    = j.to_postcode||'';
+    trs[i].querySelector('.mi-jdesc').value  = j.description||'';
+    trs[i].querySelector('.mi-jmiles').value = j.miles||0;
   });
   calcMITotals();
 
@@ -1571,10 +1595,50 @@ function addMIJourney(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input class="mi-jdate" type="date" style="width:120px" oninput="calcMITotals()"></td>
-    <td><input class="mi-jdesc" type="text" placeholder="From – To / description"></td>
+    <td>
+      <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;align-items:center">
+        <input class="mi-jfrom" type="text" placeholder="From postcode" style="width:105px;font-size:12px;text-transform:uppercase">
+        <input class="mi-jto" type="text" placeholder="To postcode" style="width:105px;font-size:12px;text-transform:uppercase">
+        <button type="button" class="btn btn-secondary" onclick="calcJourneyDist(this)" style="font-size:11px;padding:3px 8px;white-space:nowrap">📍 Calc</button>
+      </div>
+      <input class="mi-jdesc" type="text" placeholder="Description / Route">
+    </td>
     <td><input class="mi-jmiles" type="number" value="0" min="0" step="0.1" style="width:70px" oninput="calcMITotals()"></td>
     <td><button class="del-btn" onclick="this.closest('tr').remove();calcMITotals()">×</button></td>`;
   document.getElementById('mi-journeys-body').appendChild(tr);
+}
+
+async function calcJourneyDist(btn){
+  const tr   = btn.closest('tr');
+  const from = tr.querySelector('.mi-jfrom').value.trim().replace(/\s+/g,'').toUpperCase();
+  const to   = tr.querySelector('.mi-jto').value.trim().replace(/\s+/g,'').toUpperCase();
+  if(!from||!to){ toast('Enter both postcodes first.','err'); return; }
+  const orig = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(from)}`).then(r=>r.json()),
+      fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(to)}`).then(r=>r.json())
+    ]);
+    if(r1.status!==200){ toast(`Postcode not found: ${from}`,'err'); return; }
+    if(r2.status!==200){ toast(`Postcode not found: ${to}`,'err'); return; }
+    const {latitude:lat1,longitude:lon1} = r1.result;
+    const {latitude:lat2,longitude:lon2} = r2.result;
+    const osrm = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`
+    ).then(r=>r.json());
+    if(osrm.code!=='Ok'){ toast('Route could not be calculated.','err'); return; }
+    const miles = (osrm.routes[0].distance / 1609.344).toFixed(1);
+    tr.querySelector('.mi-jmiles').value = miles;
+    if(!tr.querySelector('.mi-jdesc').value.trim())
+      tr.querySelector('.mi-jdesc').value = `${from} to ${to}`;
+    calcMITotals();
+    toast(`Distance: ${miles} miles`);
+  } catch(e){
+    toast('Could not calculate distance — check your connection.','err');
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
 }
 
 function calcMITotals(){
@@ -1614,7 +1678,9 @@ async function saveMI(){
     const miles = parseFloat(tr.querySelector('.mi-jmiles')?.value)||0;
     if(desc||miles) journeys.push({
       date: tr.querySelector('.mi-jdate')?.value||'',
-      description: desc, miles
+      description: desc, miles,
+      from_postcode: tr.querySelector('.mi-jfrom')?.value.trim().toUpperCase()||'',
+      to_postcode:   tr.querySelector('.mi-jto')?.value.trim().toUpperCase()||''
     });
   });
 
