@@ -282,7 +282,7 @@
     <div class="subtitle">User Guide — All Roles</div>
   </div>
   <div class="cover-meta">
-    <p><strong>Version 1.0</strong></p>
+    <p><strong>Version 2.0</strong></p>
     <p>June 2026</p>
     <p style="margin-top:12px">For help contact:</p>
     <p>Andy Baines</p>
@@ -809,30 +809,46 @@
     </div>
     <div class="section-body">
 
+      <div class="callout role">
+        <div class="callout-icon">🧠</div>
+        <div>
+          <strong>Smart pre-fill from your last claim</strong>
+          When you open a new mileage claim the system automatically looks up your previous claim and pre-fills the <em>Month Start Mileage</em>, <em>Vehicle Registration</em>, and <em>Vehicle Type</em> for you. A confirmation toast appears at the bottom of the screen. You can override any pre-filled value before submitting.
+        </div>
+      </div>
+
       <ol class="steps">
         <li>
           <div class="step-num">1</div>
           <div class="step-body">
             <strong>Click the <em>Mileage Claims</em> tab, then <em>+ New Mileage Claim</em></strong>
+            <p>Your previous claim's end mileage, vehicle reg, and rate are pre-filled automatically.</p>
           </div>
         </li>
         <li>
           <div class="step-num">2</div>
           <div class="step-body">
-            <strong>Fill in your details, select an authoriser and the claim month</strong>
+            <strong>Fill in the claim month and check your vehicle details</strong>
+            <p>Enter the Month End Mileage — the system calculates total mileage for you.</p>
           </div>
         </li>
         <li>
           <div class="step-num">3</div>
           <div class="step-body">
-            <strong>Add journey lines</strong>
-            <p>For each journey enter the date, destination, purpose, and miles driven. The claim amount calculates automatically at the HMRC approved rate (55p/mile for private cars).</p>
+            <strong>Add journey lines using the postcode distance calculator</strong>
+            <p>Each journey row has <em>From Postcode</em> and <em>To Postcode</em> fields. Type both postcodes and click <strong>📍 Calc</strong> — the road distance in miles is calculated automatically and fills the miles field. The description is also pre-filled if you leave it blank.</p>
+            <ul>
+              <li>Use full UK postcodes, e.g. <strong>CV1 2WT</strong> or <strong>B1 1BB</strong></li>
+              <li>You can still type miles manually if you prefer</li>
+              <li>Click <strong>+ Add Journey</strong> to add more rows</li>
+            </ul>
           </div>
         </li>
         <li>
           <div class="step-num">4</div>
           <div class="step-body">
-            <strong>Click <em>Submit Claim</em></strong>
+            <strong>Enter Business Miles and click <em>Submit Claim</em></strong>
+            <p>The total claim amount calculates automatically at the HMRC approved rate.</p>
           </div>
         </li>
       </ol>
@@ -852,42 +868,62 @@
       <div class="screen">
         <div class="screen-bar">
           <div class="screen-dots"><span></span><span></span><span></span></div>
-          <div class="screen-url">New Mileage Claim</div>
+          <div class="screen-url">New Mileage Claim — journey log with postcode calculator</div>
         </div>
         <div class="mock-form">
           <div class="mock-form-grid">
             <div class="mock-field">
               <label>Employee Name <span class="req">*</span></label>
-              <input class="mock-input" value="Steve Palmer" readonly>
-            </div>
-            <div class="mock-field">
-              <label>Department <span class="req">*</span></label>
-              <select class="mock-select"><option>Operations</option></select>
+              <input class="mock-input" value="Jordan Geoghegan" readonly>
             </div>
             <div class="mock-field">
               <label>Claim Month <span class="req">*</span></label>
               <input class="mock-input" value="June 2026" readonly>
             </div>
             <div class="mock-field">
-              <label>Authoriser <span class="req">*</span></label>
-              <select class="mock-select"><option>Ruth Smith</option></select>
+              <label>Vehicle Registration</label>
+              <input class="mock-input" value="AB12 CDE" readonly style="background:#fff8ef;border-color:#f58220">
+            </div>
+            <div class="mock-field">
+              <label>Vehicle Type <span class="req">*</span></label>
+              <select class="mock-select"><option>Own Car (up to 10,000 miles) — £0.55/mile</option></select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:12px;color:var(--orange);background:#fff8ef;padding:8px 12px;border-radius:6px;border:1px solid #fdd9a5">
+            <span>🧠</span> <span>Pre-filled from your last mileage claim.</span>
+          </div>
+          <div class="mock-divider">Odometer Readings</div>
+          <div class="mock-form-grid">
+            <div class="mock-field">
+              <label>Month Start Mileage</label>
+              <input class="mock-input" value="10150" readonly style="background:#fff8ef;border-color:#f58220">
+            </div>
+            <div class="mock-field">
+              <label>Month End Mileage</label>
+              <input class="mock-input" value="10290" readonly>
             </div>
           </div>
           <div class="mock-divider">Journey Log</div>
           <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px">
-            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;font-weight:700;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
-              <span>Date</span><span>From → To</span><span>Purpose</span><span>Miles</span><span></span>
+            <div style="display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;font-weight:700;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px">
+              <span>Date</span><span>From / To Postcode &amp; Description</span><span>Miles</span><span></span>
             </div>
-            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;align-items:center">
-              <input class="mock-input" value="05/06/26" readonly>
-              <input class="mock-input" value="Coventry → Birmingham" readonly>
-              <input class="mock-input" value="Client meeting" readonly>
-              <input class="mock-input" value="24" readonly>
-              <span style="color:var(--red);font-size:16px;text-align:center">✕</span>
+            <div style="display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;align-items:start">
+              <input class="mock-input" value="14/06/26" readonly>
+              <div>
+                <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;align-items:center">
+                  <input class="mock-input" value="CV1 2WT" readonly style="width:90px;font-size:11px">
+                  <input class="mock-input" value="B1 1BB" readonly style="width:90px;font-size:11px">
+                  <button class="mock-btn secondary" style="font-size:10px;padding:3px 8px">📍 Calc</button>
+                </div>
+                <input class="mock-input" value="CV12WT to B11BB — client visit" readonly>
+              </div>
+              <input class="mock-input" value="22.4" readonly style="background:#f0fdf4;border-color:var(--green)">
+              <span style="color:var(--red);font-size:16px;text-align:center;padding-top:28px">✕</span>
             </div>
             <div style="margin-top:8px;display:flex;justify-content:space-between">
               <button class="mock-btn secondary" style="font-size:10px">+ Add Journey</button>
-              <span style="font-size:12px;font-weight:800">Total: <strong style="color:var(--orange)">£13.20</strong> &nbsp;(24 miles × 55p)</span>
+              <span style="font-size:12px;font-weight:800">Total: <strong style="color:var(--orange)">£66.00</strong> &nbsp;(120 business miles × 55p)</span>
             </div>
           </div>
           <div class="mock-form-actions" style="margin-top:20px">
@@ -1011,11 +1047,26 @@
         <li>
           <div class="step-num">3</div>
           <div class="step-body">
-            <strong>Raise the PO in your accounts system, then click <em>Mark as Processed</em></strong>
+            <strong>Fill in the Finance Processing fields</strong>
+            <p>Enter the <strong>PO Number</strong>, <strong>Invoice Number</strong>, <strong>NL Code</strong>, <strong>PL Account</strong>, <strong>Payment Method</strong>, and any Finance Notes.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click <em>Save &amp; Process</em></strong>
             <p>The request moves to <span class="status-badge processed">Processed</span> status. The requestor is notified by email.</p>
           </div>
         </li>
       </ol>
+
+      <div class="callout info">
+        <div class="callout-icon">✏️</div>
+        <div>
+          <strong>Need to update finance details after processing?</strong>
+          Open any <span class="status-badge processed">Processed</span> request and click <strong>Update Details</strong> to edit the PO number, invoice number, NL code, or other finance fields without changing the status.
+        </div>
+      </div>
 
       <div class="screen">
         <div class="screen-bar">
@@ -1259,6 +1310,22 @@
           Click <strong>Edit</strong> next to a user and uncheck <em>Active</em>. Inactive users are hidden from authoriser dropdowns but their historical records remain.
         </div>
       </div>
+
+      <div class="callout warn" style="margin-top:12px">
+        <div class="callout-icon">🗑️</div>
+        <div>
+          <strong>Deleting a user</strong>
+          Click the red <strong>Delete</strong> button next to a user to remove their hub access immediately. This removes their role entry only — their Supabase login account remains and their historical records are preserved. Use <em>Deactivate</em> (Edit → uncheck Active) instead if you just want to stop them accessing the hub without losing their profile.
+        </div>
+      </div>
+
+      <div class="callout role" style="margin-top:12px">
+        <div class="callout-icon">✉️</div>
+        <div>
+          <strong>Inviting users to set their password</strong>
+          Click the <strong>✉ Invite</strong> button next to a user to send them an invitation email. They click the link in the email to set their own password, then sign in at the hub URL.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1296,6 +1363,26 @@
         Yes — the hub is fully responsive. Open the same link in your phone browser and it will adapt to the smaller screen.
       </div>
 
+      <div class="highlight">
+        <strong>Q: My mileage start reading didn't pre-fill when I opened a new claim.</strong><br>
+        This happens if you haven't submitted a mileage claim before — there's no previous claim to read from. It will pre-fill from your second claim onwards.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: The postcode Calc button shows "Postcode not found".</strong><br>
+        Check that you've entered a valid full UK postcode (e.g. <strong>CV1 2WT</strong>, not just <strong>CV1</strong>). The calculator uses Royal Mail postcode data so partial postcodes won't work.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: The authoriser I need isn't in the dropdown.</strong><br>
+        Only active users with the <em>Authoriser</em> role appear. Ask Finance (Andrew Baines) to add or activate them via the Admin tab.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: I processed a purchase request but entered the wrong PO number.</strong><br>
+        Open the request in the Purchase Requests tab, click <strong>Update Details</strong> (visible to Finance on Processed records), correct the PO number, and save. The status stays Processed.
+      </div>
+
       <div class="callout tip" style="margin-top:20px">
         <div class="callout-icon">📧</div>
         <div>
@@ -1308,8 +1395,8 @@
 
   <!-- footer -->
   <div style="border-top:1px solid var(--border);margin-top:48px;padding-top:20px;text-align:center;font-size:12px;color:var(--muted)">
-    <p>MGTS Request &amp; Expenses Hub &nbsp;·&nbsp; User Guide v1.0 &nbsp;·&nbsp; June 2026</p>
-    <p style="margin-top:4px">Midland Group Training Services &nbsp;·&nbsp; Built by Andy Baines</p>
+    <p>MGTS Request &amp; Expenses Hub &nbsp;·&nbsp; User Guide v2.0 &nbsp;·&nbsp; June 2026</p>
+    <p style="margin-top:4px">Midland Group Training Services &nbsp;·&nbsp; Built with Love · MGTS 2026</p>
   </div>
 
 </div>
