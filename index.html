@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MGTS Request &amp; Expenses Hub</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --orange:#FBBA00;
@@ -203,6 +204,13 @@ textarea{resize:vertical;min-height:70px}
   .stat-card h3{font-size:24px}
 }
 
+/* ── EXPORT BUILDER ──────────────────────────────── */
+.exp-type-btn{background:var(--white);border:1px solid var(--border);color:var(--grey);padding:6px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
+.exp-type-btn:hover{border-color:var(--orange);color:var(--orange)}
+.exp-type-btn.active{background:var(--orange);border-color:var(--orange);color:var(--dark);font-weight:700}
+.exp-col-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;padding:12px;background:#f9fafb;border:1px solid var(--border);border-radius:var(--radius)}
+.exp-col-label{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0}
+.exp-col-label input{accent-color:var(--orange);width:14px;height:14px;flex-shrink:0}
 /* ── ADMIN INNER TABS ────────────────────────────── */
 .admin-inner-nav{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px}
 .admin-inner-tab{background:none;border:none;border-bottom:3px solid transparent;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:500;color:var(--grey);margin-bottom:-2px;transition:.2s;white-space:nowrap}
@@ -319,7 +327,7 @@ textarea{resize:vertical;min-height:70px}
           <option>Pending</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
-        <button class="btn btn-secondary" onclick="exportPR()">📤 Export</button>
+        <button class="btn btn-secondary" onclick="openExportBuilder('purchase_requests')">📤 Export</button>
         <button class="btn btn-primary" id="pr-new-btn" onclick="openPRModal()">+ New Request</button>
       </div>
       <div class="table-wrap">
@@ -343,7 +351,7 @@ textarea{resize:vertical;min-height:70px}
           <option>Pending</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
-        <button class="btn btn-secondary" onclick="exportEX()">📤 Export</button>
+        <button class="btn btn-secondary" onclick="openExportBuilder('expense_claims')">📤 Export</button>
         <button class="btn btn-primary" id="ex-new-btn" onclick="openEXModal()">+ New Claim</button>
       </div>
       <div class="table-wrap">
@@ -367,7 +375,7 @@ textarea{resize:vertical;min-height:70px}
           <option>Pending</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
-        <button class="btn btn-secondary" onclick="exportMI()">📤 Export</button>
+        <button class="btn btn-secondary" onclick="openExportBuilder('mileage_claims')">📤 Export</button>
         <button class="btn btn-primary" id="mi-new-btn" onclick="openMIModal()">+ New Claim</button>
       </div>
       <div class="table-wrap">
@@ -404,7 +412,7 @@ textarea{resize:vertical;min-height:70px}
           <label class="btn btn-secondary" for="csv-upload" style="cursor:pointer">📥 Import CSV</label>
           <input type="file" id="csv-upload" accept=".csv,.txt" style="display:none" onchange="previewCSV(this)">
           <button class="btn btn-secondary" onclick="downloadCSVTemplate()">📋 Template</button>
-          <button class="btn btn-secondary" onclick="exportAll()">📤 Export All</button>
+          <button class="btn btn-secondary" onclick="openExportBuilder('all')">📤 Export All</button>
           <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
         </div>
         <div id="csv-preview-area" class="table-wrap" style="margin-bottom:14px;display:none">
@@ -535,6 +543,69 @@ textarea{resize:vertical;min-height:70px}
 
   </div><!-- /main -->
 </div><!-- /app-view -->
+
+<!-- ══════════════════════════════════════ EXPORT BUILDER MODAL ═══ -->
+<div class="modal-bg" id="export-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-hdr">
+      <span>Export Data</span>
+      <button class="modal-close" onclick="closeModal('export-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px">
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Record Type</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="exp-type-btn active" onclick="setExportType('all')"                  id="exp-t-all">All Types</button>
+          <button class="exp-type-btn"        onclick="setExportType('purchase_requests')"    id="exp-t-purchase_requests">Purchase Requests</button>
+          <button class="exp-type-btn"        onclick="setExportType('expense_claims')"       id="exp-t-expense_claims">Expense Claims</button>
+          <button class="exp-type-btn"        onclick="setExportType('mileage_claims')"       id="exp-t-mileage_claims">Mileage Claims</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label>From (month)</label>
+          <input type="month" id="exp-from" style="width:100%" oninput="updateExportCount()">
+        </div>
+        <div>
+          <label>To (month)</label>
+          <input type="month" id="exp-to" style="width:100%" oninput="updateExportCount()">
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="exp-status" class="filter" style="width:100%" onchange="updateExportCount()">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Authorised">Authorised</option>
+            <option value="Processed">Processed</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.06em">Columns to include</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="setExportPreset('accounts')">★ Accounts</button>
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="setExportPreset('all')">All</button>
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="setExportPreset('none')">Clear</button>
+          </div>
+        </div>
+        <div id="exp-cols" class="exp-col-grid"></div>
+      </div>
+
+      <div id="exp-count" style="font-size:12px;color:var(--grey)"></div>
+    </div>
+    <div class="modal-footer">
+      <span id="exp-xlsxnote" style="font-size:11px;color:var(--grey);flex:1;align-self:center"></span>
+      <button class="btn btn-secondary" onclick="closeModal('export-modal')">Cancel</button>
+      <button class="btn btn-secondary" onclick="doExport('csv')">📄 CSV</button>
+      <button class="btn btn-primary"   onclick="doExport('xlsx')">📊 XLSX</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════ PURCHASE REQUEST MODAL ═══ -->
 <div class="modal-bg" id="pr-modal">
@@ -2660,39 +2731,183 @@ function downloadCSV(rows, filename){
   a.href=URL.createObjectURL(blob); a.download=filename; a.click();
   URL.revokeObjectURL(a.href);
 }
-function exportPR(){
-  if(!ALL_PR.length){ toast('No purchase requests to export.','err'); return; }
-  downloadCSV([
-    ['Ref','Date','Requested By','Department','Supplier','Supplier Email','Supplier Link','Subtotal (£)','Delivery (£)','Total (£)','Status','Authorised By','Auth Date','Auth Notes','PO Number','Invoice Number','NL Code','PL A/C','Payment Method','Finance Notes'],
-    ...ALL_PR.map(r=>[r.ref_number,r.request_date,r.requested_by,r.department||'',r.supplier||'',r.supplier_email||'',r.supplier_link||'',r.subtotal||0,r.delivery_cost||0,r.total,r.status,r.authorised_by||'',r.authorised_date||'',r.authoriser_notes||'',r.po_number||'',r.invoice_number||'',r.nl_code||'',r.pl_account||'',r.payment_method||'',r.finance_notes||''])
-  ],`MGTS-Purchase-Requests-${today()}.csv`);
-  toast('Purchase requests exported.');
+// ── EXPORT BUILDER ─────────────────────────────────────────────────────────
+const EXPORT_COLS = {
+  purchase_requests:[
+    {key:'ref_number',     label:'Ref Number',        accounts:true},
+    {key:'request_date',   label:'Date',              accounts:true},
+    {key:'requested_by',   label:'Requested By',      accounts:false},
+    {key:'department',     label:'Department',        accounts:false},
+    {key:'supplier',       label:'Supplier',          accounts:true},
+    {key:'supplier_email', label:'Supplier Email',    accounts:false},
+    {key:'subtotal',       label:'Net Amount (£)',    accounts:true},
+    {key:'delivery_cost',  label:'Delivery (£)',      accounts:false},
+    {key:'total',          label:'Total (£)',         accounts:true},
+    {key:'po_number',      label:'PO Number',         accounts:true},
+    {key:'invoice_number', label:'Invoice Number',    accounts:true},
+    {key:'nl_code',        label:'NL Code',           accounts:true},
+    {key:'pl_account',     label:'PL Account',        accounts:true},
+    {key:'payment_method', label:'Payment Method',    accounts:true},
+    {key:'status',         label:'Status',            accounts:true},
+    {key:'authorised_by',  label:'Authorised By',     accounts:false},
+    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'finance_notes',  label:'Finance Notes',     accounts:false},
+  ],
+  expense_claims:[
+    {key:'ref_number',     label:'Ref Number',        accounts:true},
+    {key:'claim_month',    label:'Month',             accounts:true},
+    {key:'employee_name',  label:'Employee',          accounts:true},
+    {key:'department',     label:'Department',        accounts:false},
+    {key:'total',          label:'Total (£)',         accounts:true},
+    {key:'total_vat',      label:'VAT (£)',           accounts:true},
+    {key:'total_ex_vat',   label:'Ex VAT (£)',        accounts:true},
+    {key:'invoice_number', label:'Invoice Number',    accounts:true},
+    {key:'status',         label:'Status',            accounts:true},
+    {key:'authorised_by',  label:'Authorised By',     accounts:false},
+    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'finance_notes',  label:'Finance Notes',     accounts:false},
+  ],
+  mileage_claims:[
+    {key:'ref_number',      label:'Ref Number',        accounts:true},
+    {key:'claim_month',     label:'Month',             accounts:true},
+    {key:'employee_name',   label:'Employee',          accounts:true},
+    {key:'vehicle_reg',     label:'Vehicle Reg',       accounts:false},
+    {key:'vehicle_type',    label:'Vehicle Type',      accounts:false},
+    {key:'mileage_rate',    label:'Rate (p/mi)',       accounts:false},
+    {key:'business_mileage',label:'Business Miles',    accounts:true},
+    {key:'overnight_stays', label:'Overnight Stays',   accounts:false},
+    {key:'mileage_total',   label:'Mileage Total (£)', accounts:true},
+    {key:'overnight_total', label:'Overnight (£)',     accounts:false},
+    {key:'total_claim',     label:'Total Claim (£)',   accounts:true},
+    {key:'status',          label:'Status',            accounts:true},
+    {key:'authorised_by',   label:'Authorised By',     accounts:false},
+    {key:'authorised_date', label:'Auth Date',         accounts:false},
+    {key:'finance_notes',   label:'Finance Notes',     accounts:false},
+  ],
+  all:[
+    {key:'_type',          label:'Type',              accounts:true},
+    {key:'ref_number',     label:'Ref Number',        accounts:true},
+    {key:'_date',          label:'Date / Month',      accounts:true},
+    {key:'_employee',      label:'Submitted By',      accounts:true},
+    {key:'department',     label:'Department',        accounts:false},
+    {key:'_details',       label:'Details',           accounts:false},
+    {key:'_net',           label:'Net (£)',           accounts:true},
+    {key:'_vat',           label:'VAT (£)',           accounts:false},
+    {key:'_total',         label:'Total (£)',         accounts:true},
+    {key:'invoice_number', label:'Invoice Number',    accounts:true},
+    {key:'po_number',      label:'PO Number',         accounts:false},
+    {key:'nl_code',        label:'NL Code',           accounts:true},
+    {key:'pl_account',     label:'PL Account',        accounts:true},
+    {key:'payment_method', label:'Payment Method',    accounts:false},
+    {key:'status',         label:'Status',            accounts:true},
+    {key:'authorised_by',  label:'Authorised By',     accounts:false},
+    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'finance_notes',  label:'Finance Notes',     accounts:false},
+  ]
+};
+
+let _expType = 'all';
+
+function openExportBuilder(type='all'){
+  _expType = type;
+  document.getElementById('exp-from').value = '';
+  document.getElementById('exp-to').value   = '';
+  document.getElementById('exp-status').value = '';
+  document.querySelectorAll('.exp-type-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('exp-t-'+type)?.classList.add('active');
+  document.getElementById('exp-xlsxnote').textContent = typeof XLSX !== 'undefined' ? '' : 'XLSX loading…';
+  renderExportCols();
+  updateExportCount();
+  document.getElementById('export-modal').style.display='flex';
 }
-function exportEX(){
-  if(!ALL_EX.length){ toast('No expense claims to export.','err'); return; }
-  downloadCSV([
-    ['Ref','Month','Employee','Department','Total (£)','VAT (£)','Ex VAT (£)','Status','Authorised By','Auth Date','Finance Notes'],
-    ...ALL_EX.map(r=>[r.ref_number,r.claim_month,r.employee_name,r.department||'',r.total,r.total_vat,r.total_ex_vat,r.status,r.authorised_by||'',r.authorised_date||'',r.finance_notes||''])
-  ],`MGTS-Expense-Claims-${today()}.csv`);
-  toast('Expense claims exported.');
+
+function setExportType(type){
+  _expType = type;
+  document.querySelectorAll('.exp-type-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('exp-t-'+type)?.classList.add('active');
+  renderExportCols();
+  updateExportCount();
 }
-function exportMI(){
-  if(!ALL_MI.length){ toast('No mileage claims to export.','err'); return; }
-  downloadCSV([
-    ['Ref','Month','Employee','Vehicle Reg','Vehicle Type','Rate (£/mi)','Business Miles','Overnight Stays','Mileage Total (£)','Overnight Total (£)','Total Claim (£)','Status','Authorised By','Auth Date','Finance Notes'],
-    ...ALL_MI.map(r=>[r.ref_number,r.claim_month,r.employee_name,r.vehicle_reg||'',r.vehicle_type||'',r.mileage_rate||'',r.business_mileage||0,r.overnight_stays||0,r.mileage_total||0,r.overnight_total||0,r.total_claim,r.status,r.authorised_by||'',r.authorised_date||'',r.finance_notes||''])
-  ],`MGTS-Mileage-Claims-${today()}.csv`);
-  toast('Mileage claims exported.');
+
+function renderExportCols(){
+  const cols = EXPORT_COLS[_expType]||[];
+  document.getElementById('exp-cols').innerHTML = cols.map(c=>`
+    <label class="exp-col-label">
+      <input type="checkbox" class="exp-col-cb" data-key="${c.key}" ${c.accounts?'checked':''}>
+      ${c.label}
+    </label>`).join('');
+  document.querySelectorAll('.exp-col-cb').forEach(cb=>cb.addEventListener('change', updateExportCount));
 }
-function exportAll(){
-  if(!ALL_PR.length&&!ALL_EX.length&&!ALL_MI.length){ toast('No data to export.','err'); return; }
-  downloadCSV([
-    ['Type','Ref','Date / Month','Submitted By','Details','Total (£)','Status','Authorised By','Auth Date'],
-    ...ALL_PR.map(r=>['Purchase Request',r.ref_number,r.request_date,r.requested_by,r.supplier||'—',r.total,r.status,r.authorised_by||'',r.authorised_date||'']),
-    ...ALL_EX.map(r=>['Expense Claim',r.ref_number,r.claim_month,r.employee_name,'',r.total,r.status,r.authorised_by||'',r.authorised_date||'']),
-    ...ALL_MI.map(r=>['Mileage Claim',r.ref_number,r.claim_month,r.employee_name,`${r.business_mileage||0} miles`,r.total_claim,r.status,r.authorised_by||'',r.authorised_date||''])
-  ],`MGTS-All-Requests-${today()}.csv`);
-  toast('All data exported.');
+
+function setExportPreset(preset){
+  const cols = EXPORT_COLS[_expType]||[];
+  document.querySelectorAll('.exp-col-cb').forEach(cb=>{
+    if(preset==='all')  cb.checked = true;
+    else if(preset==='none') cb.checked = false;
+    else { const col=cols.find(c=>c.key===cb.dataset.key); cb.checked = col?col.accounts:false; }
+  });
+  updateExportCount();
+}
+
+function _expFilterRows(type){
+  const from   = document.getElementById('exp-from').value;
+  const to     = document.getElementById('exp-to').value;
+  const status = document.getElementById('exp-status').value;
+  const inRange = d => { const m=(d||'').slice(0,7); return (!from||m>=from)&&(!to||m<=to); };
+  const inSt    = r => !status || r.status===status;
+  if(type==='purchase_requests') return ALL_PR.filter(r=>inRange(r.request_date)&&inSt(r));
+  if(type==='expense_claims')    return ALL_EX.filter(r=>inRange(r.claim_month)&&inSt(r));
+  if(type==='mileage_claims')    return ALL_MI.filter(r=>inRange(r.claim_month)&&inSt(r));
+  return [
+    ..._expFilterRows('purchase_requests').map(r=>({...r,_type:'Purchase Request',_date:r.request_date,_employee:r.requested_by,_details:r.supplier||'',_net:r.subtotal||0,_vat:'',_total:r.total})),
+    ..._expFilterRows('expense_claims').map(r=>({...r,_type:'Expense Claim',_date:r.claim_month,_employee:r.employee_name,_details:'',_net:r.total_ex_vat||0,_vat:r.total_vat||0,_total:r.total})),
+    ..._expFilterRows('mileage_claims').map(r=>({...r,_type:'Mileage Claim',_date:r.claim_month,_employee:r.employee_name,_details:`${r.business_mileage||0} miles`,_net:r.total_claim,_vat:'',_total:r.total_claim})),
+  ];
+}
+
+function updateExportCount(){
+  const rows = _expFilterRows(_expType);
+  document.getElementById('exp-count').textContent = `${rows.length} record${rows.length===1?'':'s'} match current filters`;
+}
+
+function doExport(format){
+  const cols    = EXPORT_COLS[_expType]||[];
+  const selKeys = [...document.querySelectorAll('.exp-col-cb:checked')].map(cb=>cb.dataset.key);
+  if(!selKeys.length){ toast('Select at least one column.','err'); return; }
+  const activeCols = cols.filter(c=>selKeys.includes(c.key));
+  const rows = _expFilterRows(_expType);
+  if(!rows.length){ toast('No records match the current filters.','err'); return; }
+
+  const headers = activeCols.map(c=>c.label);
+  const fname = `MGTS-Export-${today()}`;
+
+  if(format==='csv'){
+    downloadCSV([headers, ...rows.map(r=>activeCols.map(c=>r[c.key]??''))], fname+'.csv');
+    toast('CSV exported.'); closeModal('export-modal'); return;
+  }
+
+  if(typeof XLSX==='undefined'){ toast('XLSX library still loading — please retry.','err'); return; }
+
+  if(_expType==='all'){
+    const wb = XLSX.utils.book_new();
+    ['purchase_requests','expense_claims','mileage_claims'].forEach((type,i)=>{
+      const typeCols = EXPORT_COLS[type].filter(c=>selKeys.includes(c.key));
+      if(!typeCols.length) return;
+      const typeRows = _expFilterRows(type);
+      if(!typeRows.length) return;
+      const ws = XLSX.utils.aoa_to_sheet([typeCols.map(c=>c.label), ...typeRows.map(r=>typeCols.map(c=>r[c.key]??''))]);
+      XLSX.utils.book_append_sheet(wb, ws, ['Purchase Requests','Expense Claims','Mileage Claims'][i]);
+    });
+    const summaryWs = XLSX.utils.aoa_to_sheet([headers, ...rows.map(r=>activeCols.map(c=>r[c.key]??''))]);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'All Records');
+    XLSX.writeFile(wb, fname+'.xlsx');
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows.map(r=>activeCols.map(c=>r[c.key]??''))]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, _expType.replace(/_/g,' '));
+    XLSX.writeFile(wb, fname+'.xlsx');
+  }
+  toast('XLSX exported.'); closeModal('export-modal');
 }
 function downloadCSVTemplate(){
   downloadCSV([
