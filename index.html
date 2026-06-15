@@ -935,12 +935,22 @@ async function loadUsers(){
 
 // ── REF NUMBERS ───────────────────────────────────────────
 async function nextRef(prefix){
-  const { data, error } = await _db.rpc('next_ref', { p_prefix: prefix });
-  if(error || !data){
-    // Fallback: timestamp-based ref if RPC not yet deployed
+  try {
+    const session = (await _db.auth.getSession()).data.session;
+    const token   = session?.access_token;
+    if(!token) throw new Error('no session');
+    const res  = await fetch('/api/next-ref', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+token },
+      body: JSON.stringify({ prefix })
+    });
+    const json = await res.json();
+    if(json.ref) return json.ref;
+    throw new Error(json.error||'no ref');
+  } catch(e){
+    // Fallback when running locally without Vercel functions
     return prefix + Date.now().toString().slice(-6);
   }
-  return data;
 }
 
 // ── TABS / NAV ────────────────────────────────────────────
