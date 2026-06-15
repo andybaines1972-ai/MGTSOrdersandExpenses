@@ -1173,7 +1173,7 @@ function showTab(t){
   if(t==='purchase') renderPR();
   if(t==='expense')  renderEX();
   if(t==='mileage')  renderMI();
-  if(t==='admin')    renderUsers();
+  if(t==='admin')  { showAdminTab('users'); renderUsers(); }
   if(t==='help')     loadHelpGuide();
 }
 
