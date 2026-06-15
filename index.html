@@ -2402,7 +2402,11 @@ function printPO(){
     return d.toLocaleDateString('en-GB') + ' - ' + d.toTimeString().slice(0,8);
   };
 
-  const poNum     = r.po_number || r.ref_number;
+  // Read live form values — Finance may have typed these without saving yet
+  const poNumField     = (document.getElementById('pr-po')?.value||'').trim();
+  const invoiceNumField = (document.getElementById('pr-invoice')?.value||'').trim();
+  const poNum     = poNumField || r.po_number || r.ref_number;
+  const invoiceNum = invoiceNumField || r.invoice_number || '';
   const poDate    = fmtD(r.request_date) || fmtD(new Date());
   const createdAt = fmtDT(r.created_at);
   const createdBy = (r.requested_by || 'SYSTEM').toUpperCase();
@@ -2513,7 +2517,7 @@ function printPO(){
     </div>
     <div class="info-box">
       <div class="info-row hi"><div class="ik">ORDER NUMBER</div><div class="iv"><strong>${poNum}</strong></div></div>
-      ${r.invoice_number ? `<div class="info-row hi"><div class="ik">INVOICE NO.</div><div class="iv"><strong>${esc(r.invoice_number)}</strong></div></div>` : ''}
+      ${invoiceNum ? `<div class="info-row hi"><div class="ik">INVOICE NO.</div><div class="iv"><strong>${esc(invoiceNum)}</strong></div></div>` : ''}
       <div class="info-row hi"><div class="ik">DATE</div><div class="iv"><strong>${poDate}</strong></div></div>
       <div class="info-row"><div class="ik">Tel:</div><div class="iv">02476 630333</div></div>
       <div class="info-row"><div class="ik">Fax:</div><div class="iv">02476 525029</div></div>
