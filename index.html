@@ -2818,7 +2818,7 @@ function openExportBuilder(type='all'){
   document.getElementById('exp-xlsxnote').textContent = typeof XLSX !== 'undefined' ? '' : 'XLSX loading…';
   renderExportCols();
   updateExportCount();
-  document.getElementById('export-modal').style.display='flex';
+  document.getElementById('export-modal').classList.add('open');
 }
 
 function setExportType(type){
