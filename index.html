@@ -296,6 +296,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="nav-user">
       <div class="nav-user-name" id="nav-name">—</div>
       <span class="nav-role-badge" id="nav-role">—</span>
+      <span class="nav-role-badge" id="nav-delegation-badge" style="display:none;background:rgba(22,163,74,.18);border-color:rgba(22,163,74,.5);color:#166534">Finance Delegate</span>
     </div>
     <button class="nav-btn" onclick="doLogout()">Sign Out</button>
   </div>
@@ -403,6 +404,7 @@ textarea{resize:vertical;min-height:70px}
       <!-- Inner nav tabs -->
       <div class="admin-inner-nav">
         <button class="admin-inner-tab active" id="ait-users" onclick="showAdminTab('users')">Users</button>
+        <button class="admin-inner-tab" id="ait-delegation" onclick="showAdminTab('delegation')">Delegation</button>
         <button class="admin-inner-tab" id="ait-audit" onclick="showAdminTab('audit')">Change Log</button>
         <button class="admin-inner-tab" id="ait-debug" onclick="showAdminTab('debug')">System Debug</button>
       </div>
@@ -431,6 +433,54 @@ textarea{resize:vertical;min-height:70px}
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th></th><th></th><th></th></tr></thead>
             <tbody id="user-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── DELEGATION PANEL ── -->
+      <div id="admin-delegation-panel" style="display:none">
+        <div class="toolbar">
+          <h2>Finance Authorisation Delegation</h2>
+        </div>
+        <div style="background:var(--light);border:1px solid var(--mid);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+          <p style="font-size:13px;color:var(--grey);margin-bottom:12px">
+            When finance is on holiday or unavailable, delegate finance authorisation powers to another user.
+            The delegate will be able to authorise <strong>Approved</strong> requests during the specified dates.
+            They will <strong>not</strong> gain access to PO processing, admin, or other finance functions.
+          </p>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Delegate To *</label>
+              <select id="del-user">
+                <option value="">— Select User —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Reason</label>
+              <input type="text" id="del-reason" placeholder="e.g. Annual leave, training">
+            </div>
+            <div class="form-group">
+              <label>From Date *</label>
+              <input type="date" id="del-from">
+            </div>
+            <div class="form-group">
+              <label>To Date *</label>
+              <input type="date" id="del-to">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveDelegation()" style="margin-top:10px">Set Delegation</button>
+        </div>
+
+        <div class="toolbar"><h2>Active &amp; Recent Delegations</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Delegate</th><th>From</th><th>To</th>
+              <th>Reason</th><th>Set By</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody id="del-tbody">
+              <tr><td colspan="7"><div class="empty"><p>No delegations found.</p></div></td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -1111,6 +1161,7 @@ async function initApp(user){
 
   document.getElementById('nav-name').textContent = S.name;
   document.getElementById('nav-role').textContent = S.role.charAt(0).toUpperCase()+S.role.slice(1);
+  document.getElementById('nav-delegation-badge').style.display = 'none';
 
   // show/hide UI by role
   document.getElementById('pr-new-btn').style.display  = '';
@@ -1122,6 +1173,11 @@ async function initApp(user){
   document.getElementById('app-view').style.display='block';
 
   await refreshAll();
+  await checkActiveDelegation();
+  if(ACTIVE_DELEGATION){
+    document.getElementById('nav-delegation-badge').style.display = '';
+    toast(`You have active finance delegation from ${ACTIVE_DELEGATION.created_by_name||'Finance'} (until ${ACTIVE_DELEGATION.end_date}).`);
+  }
   showTab('dash');
 }
 
@@ -1259,7 +1315,7 @@ function renderDash(){
       <h3>${allProc}</h3><p>Total Processed</p></div>`;
 
   let html = '';
-  if(S.role !== 'requestor'){
+  if(S.role !== 'requestor' || ACTIVE_DELEGATION){
     const mkItems = status => [
       ...ALL_PR.filter(r=>r.status===status).map(r=>({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total})),
       ...ALL_EX.filter(r=>r.status===status).map(r=>({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total})),
@@ -1286,6 +1342,13 @@ function renderDash(){
            + renderTable('Authorised — PO Processing Required', authorisedItems);
       if(!approvedItems.length && !authorisedItems.length)
         html = `<div class="empty"><div class="icon">✅</div><p>All items are up to date — nothing needs your attention.</p></div>`;
+    } else if(ACTIVE_DELEGATION){
+      const approvedItems = mkItems('Approved');
+      const pendingItems  = mkItems('Pending');
+      html = renderTable('Approved — Finance Authorisation (Delegated to You)', approvedItems)
+           + renderTable('Pending Items — Manager Approval Required', pendingItems);
+      if(!approvedItems.length && !pendingItems.length)
+        html = `<div class="empty"><div class="icon">✅</div><p>No items need your attention.</p></div>`;
     } else {
       const pendingItems = mkItems('Pending');
       html = renderTable('Pending Items — Action Required', pendingItems);
@@ -1422,8 +1485,8 @@ async function openPRModal(id){
     document.getElementById('pr-auth-notes').readOnly = true;
   }
 
-  // Finance authorisation notes — editable for finance on Approved; read-only once authorised
-  if(S.role==='finance' && r.status==='Approved'){
+  // Finance authorisation notes — editable for finance/delegate on Approved; read-only once authorised
+  if(canFinanceAuth() && r.status==='Approved'){
     document.getElementById('pr-fin-auth-note-group').style.display = '';
     document.getElementById('pr-fin-auth-notes').readOnly = false;
   } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
@@ -1441,8 +1504,8 @@ async function openPRModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Approved')">Approve</button>`;
   }
-  // Level 2: Finance authorisation (Approved → Authorised)
-  if(S.role==='finance' && r.status==='Approved'){
+  // Level 2: Finance authorisation (Approved → Authorised) — finance or delegate
+  if(canFinanceAuth() && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1653,8 +1716,8 @@ async function openEXModal(id){
     document.getElementById('ex-auth-notes').readOnly = true;
   }
 
-  // Finance authorisation notes
-  if(S.role==='finance' && r.status==='Approved'){
+  // Finance authorisation notes — finance or delegate
+  if(canFinanceAuth() && r.status==='Approved'){
     document.getElementById('ex-fin-auth-note-group').style.display = '';
     document.getElementById('ex-fin-auth-notes').readOnly = false;
   } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
@@ -1671,8 +1734,8 @@ async function openEXModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Approved')">Approve</button>`;
   }
-  // Level 2: Finance authorisation (Approved → Authorised)
-  if(S.role==='finance' && r.status==='Approved'){
+  // Level 2: Finance authorisation (Approved → Authorised) — finance or delegate
+  if(canFinanceAuth() && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1892,8 +1955,8 @@ async function openMIModal(id){
     document.getElementById('mi-auth-notes').readOnly = true;
   }
 
-  // Finance authorisation notes
-  if(S.role==='finance' && r.status==='Approved'){
+  // Finance authorisation notes — finance or delegate
+  if(canFinanceAuth() && r.status==='Approved'){
     document.getElementById('mi-fin-auth-note-group').style.display = '';
     document.getElementById('mi-fin-auth-notes').readOnly = false;
   } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
@@ -1910,8 +1973,8 @@ async function openMIModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Approved')">Approve</button>`;
   }
-  // Level 2: Finance authorisation (Approved → Authorised)
-  if(S.role==='finance' && r.status==='Approved'){
+  // Level 2: Finance authorisation (Approved → Authorised) — finance or delegate
+  if(canFinanceAuth() && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -2217,10 +2280,11 @@ async function saveUser(){
 
 // ── ADMIN INNER TABS ──────────────────────────────────────
 function showAdminTab(tab){
-  ['users','audit','debug'].forEach(t=>{
+  ['users','delegation','audit','debug'].forEach(t=>{
     document.getElementById('admin-'+t+'-panel').style.display = t===tab?'':'none';
     document.getElementById('ait-'+t)?.classList.toggle('active', t===tab);
   });
+  if(tab==='delegation') loadDelegations();
   if(tab==='audit') loadAuditLog();
   if(tab==='debug'){ runHealthCheck(); renderErrors(); }
 }
@@ -2593,6 +2657,154 @@ function renderErrors(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── DELEGATION ────────────────────────────────────────────
+let ALL_DELEGATIONS = [];
+let ACTIVE_DELEGATION = null;
+
+async function loadDelegations(){
+  // Populate delegate dropdown with authorisers + requestors (not finance — they already have the power)
+  const sel = document.getElementById('del-user');
+  if(sel){
+    const candidates = (ALL_USERS||[]).filter(u=>u.role!=='finance'&&u.is_active);
+    sel.innerHTML = '<option value="">— Select User —</option>' +
+      candidates.map(u=>`<option value="${u.email}">${u.name}</option>`).join('');
+  }
+  // Set default dates
+  const fromEl = document.getElementById('del-from');
+  const toEl   = document.getElementById('del-to');
+  if(fromEl && !fromEl.value) fromEl.value = today();
+  if(toEl && !toEl.value){
+    const d = new Date(); d.setDate(d.getDate()+7);
+    toEl.value = d.toISOString().slice(0,10);
+  }
+  // Load existing delegations
+  const {data,error} = await _db.from('finance_delegations')
+    .select('*').order('created_at',{ascending:false}).limit(20);
+  if(error){
+    document.getElementById('del-tbody').innerHTML =
+      `<tr><td colspan="7"><div class="empty"><p>Delegation table not set up — run <strong>migrate-v7.sql</strong></p></div></td></tr>`;
+    return;
+  }
+  ALL_DELEGATIONS = data||[];
+  renderDelegations();
+}
+
+function renderDelegations(){
+  const tbody = document.getElementById('del-tbody');
+  if(!ALL_DELEGATIONS.length){
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No delegations found.</p></div></td></tr>';
+    return;
+  }
+  const todayStr = today();
+  tbody.innerHTML = ALL_DELEGATIONS.map(d=>{
+    const active = d.is_active && d.start_date<=todayStr && d.end_date>=todayStr;
+    const expired = d.end_date<todayStr;
+    const statusHtml = !d.is_active
+      ? '<span class="status s-rejected">Revoked</span>'
+      : active
+        ? '<span class="status s-authorised">Active</span>'
+        : expired
+          ? '<span class="status s-processed">Expired</span>'
+          : '<span class="status s-pending">Scheduled</span>';
+    return `<tr>
+      <td>${esc(d.delegate_name||d.delegate_email)}</td>
+      <td>${esc(d.start_date)}</td><td>${esc(d.end_date)}</td>
+      <td>${esc(d.reason||'—')}</td>
+      <td>${esc(d.created_by_name||'—')}</td>
+      <td>${statusHtml}</td>
+      <td>${d.is_active?`<button class="btn btn-sm btn-danger" onclick="revokeDelegation('${d.id}')">Revoke</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function saveDelegation(){
+  const email = document.getElementById('del-user').value;
+  const from  = document.getElementById('del-from').value;
+  const to    = document.getElementById('del-to').value;
+  const reason= document.getElementById('del-reason').value.trim();
+  if(!email||!from||!to){ toast('Select a user and date range.','err'); return; }
+  if(to<from){ toast('End date must be after start date.','err'); return; }
+  const user = (ALL_USERS||[]).find(u=>u.email===email);
+  const {error} = await _db.from('finance_delegations').insert({
+    delegate_email: email,
+    delegate_name: user?.name||email,
+    start_date: from,
+    end_date: to,
+    reason,
+    created_by_email: S.user.email,
+    created_by_name: S.name,
+    is_active: true
+  });
+  if(error){ toast(error.message,'err'); return; }
+  logAction('delegation_created','delegation',null,null,{delegate:user?.name||email,from,to,reason});
+  toast(`Delegation set for ${user?.name||email}.`);
+  document.getElementById('del-reason').value = '';
+  await loadDelegations();
+  await checkActiveDelegation();
+}
+
+async function revokeDelegation(id){
+  if(!confirm('Revoke this delegation?')) return;
+  const {error} = await _db.from('finance_delegations').update({is_active:false}).eq('id',id);
+  if(error){ toast(error.message,'err'); return; }
+  logAction('delegation_revoked','delegation',id,null,{});
+  toast('Delegation revoked.');
+  await loadDelegations();
+  await checkActiveDelegation();
+}
+
+async function checkActiveDelegation(){
+  ACTIVE_DELEGATION = null;
+  if(S.role==='finance') return;
+  try {
+    const todayStr = today();
+    const {data} = await _db.from('finance_delegations')
+      .select('*')
+      .eq('delegate_email', S.user.email)
+      .eq('is_active', true)
+      .lte('start_date', todayStr)
+      .gte('end_date', todayStr)
+      .limit(1);
+    if(data&&data.length) ACTIVE_DELEGATION = data[0];
+  } catch(e){}
+}
+
+function canFinanceAuth(){
+  return S.role==='finance' || ACTIVE_DELEGATION!==null;
+}
+
+// ── IMAGE COMPRESSION ────────────────────────────────────
+function compressImage(file, maxW=1920, maxH=1920, quality=0.75){
+  return new Promise((resolve)=>{
+    if(!file.type.startsWith('image/')){ resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let w=img.width, h=img.height;
+      if(w<=maxW && h<=maxH && file.size<500*1024){ resolve(file); return; }
+      if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      if(h>maxH){ w=Math.round(w*maxH/h); h=maxH; }
+      const canvas = document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(blob=>{
+        if(!blob){ resolve(file); return; }
+        const compressed = new File([blob], file.name.replace(/\.[^.]+$/,'.jpg'), {type:'image/jpeg'});
+        const saved = file.size - compressed.size;
+        if(saved>10*1024) console.log(`Compressed ${file.name}: ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB`);
+        resolve(saved>0 ? compressed : file);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+async function compressFiles(files){
+  return Promise.all(files.map(f=>compressImage(f)));
 }
 
 // ── EMAIL ─────────────────────────────────────────────────
@@ -3171,8 +3383,9 @@ function removeStagedFile(type, idx, pendingId){
 }
 
 async function handlePRFiles(input){
-  const files = Array.from(input.files); input.value='';
+  let files = Array.from(input.files); input.value='';
   if(!files.length) return;
+  files = await compressFiles(files);
   const existId = document.getElementById('pr-id').value;
   if(existId){
     for(const f of files) await uploadOneFile('purchase', existId, f);
@@ -3184,8 +3397,9 @@ async function handlePRFiles(input){
 }
 
 async function handleEXFiles(input){
-  const files = Array.from(input.files); input.value='';
+  let files = Array.from(input.files); input.value='';
   if(!files.length) return;
+  files = await compressFiles(files);
   const existId = document.getElementById('ex-id').value;
   if(existId){
     for(const f of files) await uploadOneFile('expense', existId, f);
@@ -3197,8 +3411,9 @@ async function handleEXFiles(input){
 }
 
 async function handleMIFiles(input){
-  const files = Array.from(input.files); input.value='';
+  let files = Array.from(input.files); input.value='';
   if(!files.length) return;
+  files = await compressFiles(files);
   const existId = document.getElementById('mi-id').value;
   if(existId){
     for(const f of files) await uploadOneFile('mileage', existId, f);
