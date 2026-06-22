@@ -92,6 +92,7 @@ tr:hover td{background:#fafafa}
 /* ── STATUS BADGES ───────────────────────────────── */
 .status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap}
 .s-pending{background:#fef3c7;color:#92400e}
+.s-approved{background:#fef9c3;color:#854d0e}
 .s-authorised{background:#dcfce7;color:#14532d}
 .s-rejected{background:#fee2e2;color:#7f1d1d}
 .s-processed{background:#dbeafe;color:#1e3a8a}
@@ -324,7 +325,7 @@ textarea{resize:vertical;min-height:70px}
         <input type="search" placeholder="Search…" oninput="renderPR()" id="pr-search">
         <select class="filter" onchange="renderPR()" id="pr-filter">
           <option value="">All Statuses</option>
-          <option>Pending</option><option>Authorised</option>
+          <option>Pending</option><option>Approved</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
         <button class="btn btn-secondary" onclick="openExportBuilder('purchase_requests')">📤 Export</button>
@@ -348,7 +349,7 @@ textarea{resize:vertical;min-height:70px}
         <input type="search" placeholder="Search…" oninput="renderEX()" id="ex-search">
         <select class="filter" onchange="renderEX()" id="ex-filter">
           <option value="">All Statuses</option>
-          <option>Pending</option><option>Authorised</option>
+          <option>Pending</option><option>Approved</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
         <button class="btn btn-secondary" onclick="openExportBuilder('expense_claims')">📤 Export</button>
@@ -372,7 +373,7 @@ textarea{resize:vertical;min-height:70px}
         <input type="search" placeholder="Search…" oninput="renderMI()" id="mi-search">
         <select class="filter" onchange="renderMI()" id="mi-filter">
           <option value="">All Statuses</option>
-          <option>Pending</option><option>Authorised</option>
+          <option>Pending</option><option>Approved</option><option>Authorised</option>
           <option>Rejected</option><option>Processed</option>
         </select>
         <button class="btn btn-secondary" onclick="openExportBuilder('mileage_claims')">📤 Export</button>
@@ -529,6 +530,7 @@ textarea{resize:vertical;min-height:70px}
           <div class="dc-body">
             <ul style="font-size:13px;color:var(--grey);line-height:2;padding-left:18px">
               <li>Run <code>migrate-audit.sql</code> in Supabase SQL Editor to enable the Change Log</li>
+              <li>Run <code>migrate-v6.sql</code> in Supabase SQL Editor to enable two-level authorisation (manager → finance)</li>
               <li>Ensure <code>SUPABASE_SERVICE_ROLE_KEY</code> and <code>SUPABASE_ANON_KEY</code> are set in Vercel Environment Variables</li>
               <li>Ensure <code>RESEND_API_KEY</code> is set in Vercel Environment Variables for email notifications</li>
               <li>Magic link limit (2/hr): fix by adding custom SMTP in Supabase → Project Settings → Auth → SMTP. Host: <code>smtp.resend.com</code>, Port: <code>465</code>, User: <code>resend</code>, Password: your Resend API key, From: <code>no-reply@mgts.co.uk</code></li>
@@ -577,6 +579,7 @@ textarea{resize:vertical;min-height:70px}
           <select id="exp-status" class="filter" style="width:100%" onchange="updateExportCount()">
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
             <option value="Authorised">Authorised</option>
             <option value="Processed">Processed</option>
             <option value="Rejected">Rejected</option>
@@ -731,10 +734,15 @@ textarea{resize:vertical;min-height:70px}
         </div>
       </div>
 
-      <!-- Auth notes -->
+      <!-- Auth notes (manager approval) -->
       <div class="form-group" id="pr-auth-note-group" style="margin-top:14px;display:none">
-        <label>Authoriser Notes</label>
-        <textarea id="pr-auth-notes" rows="2" placeholder="Optional notes for rejection reason, etc."></textarea>
+        <label>Manager Approval Notes</label>
+        <textarea id="pr-auth-notes" rows="2" placeholder="Optional notes for approval/rejection"></textarea>
+      </div>
+      <!-- Finance authorisation notes -->
+      <div class="form-group" id="pr-fin-auth-note-group" style="margin-top:14px;display:none">
+        <label>Finance Authorisation Notes</label>
+        <textarea id="pr-fin-auth-notes" rows="2" placeholder="Optional notes from finance authoriser"></textarea>
       </div>
 
       <!-- Attachments -->
@@ -810,8 +818,12 @@ textarea{resize:vertical;min-height:70px}
         </div>
       </div>
       <div class="form-group" id="ex-auth-note-group" style="margin-top:14px;display:none">
-        <label>Authoriser Notes</label>
+        <label>Manager Approval Notes</label>
         <textarea id="ex-auth-notes" rows="2"></textarea>
+      </div>
+      <div class="form-group" id="ex-fin-auth-note-group" style="margin-top:14px;display:none">
+        <label>Finance Authorisation Notes</label>
+        <textarea id="ex-fin-auth-notes" rows="2" placeholder="Optional notes from finance authoriser"></textarea>
       </div>
 
       <!-- Attachments -->
@@ -935,8 +947,12 @@ textarea{resize:vertical;min-height:70px}
         </div>
       </div>
       <div class="form-group" id="mi-auth-note-group" style="margin-top:14px;display:none">
-        <label>Authoriser Notes</label>
+        <label>Manager Approval Notes</label>
         <textarea id="mi-auth-notes" rows="2"></textarea>
+      </div>
+      <div class="form-group" id="mi-fin-auth-note-group" style="margin-top:14px;display:none">
+        <label>Finance Authorisation Notes</label>
+        <textarea id="mi-fin-auth-notes" rows="2" placeholder="Optional notes from finance authoriser"></textarea>
       </div>
 
       <!-- Attachments -->
@@ -1037,7 +1053,7 @@ const fmt = n => '£' + (parseFloat(n)||0).toFixed(2);
 const today = () => new Date().toISOString().slice(0,10);
 const nowMonth = () => new Date().toISOString().slice(0,7);
 const statusCls = s => ({
-  'Pending':'s-pending','Authorised':'s-authorised',
+  'Pending':'s-pending','Approved':'s-approved','Authorised':'s-authorised',
   'Rejected':'s-rejected','Processed':'s-processed','Draft':'s-draft'
 }[s]||'s-draft');
 
@@ -1205,10 +1221,10 @@ function goTo(tab, filterId, filterVal){
 }
 
 function updateBadges(){
-  const pending = arr => arr.filter(r=>r.status==='Pending').length;
-  document.getElementById('badge-pr').textContent = pending(ALL_PR);
-  document.getElementById('badge-ex').textContent = pending(ALL_EX);
-  document.getElementById('badge-mi').textContent = pending(ALL_MI);
+  const actionable = arr => arr.filter(r=>r.status==='Pending'||r.status==='Approved').length;
+  document.getElementById('badge-pr').textContent = actionable(ALL_PR);
+  document.getElementById('badge-ex').textContent = actionable(ALL_EX);
+  document.getElementById('badge-mi').textContent = actionable(ALL_MI);
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────
@@ -1218,6 +1234,10 @@ function renderDash(){
   const exPend  = ALL_EX.filter(r=>r.status==='Pending').length;
   const miPend  = ALL_MI.filter(r=>r.status==='Pending').length;
   const totalPend = prPend+exPend+miPend;
+  const prAppr  = ALL_PR.filter(r=>r.status==='Approved').length;
+  const exAppr  = ALL_EX.filter(r=>r.status==='Approved').length;
+  const miAppr  = ALL_MI.filter(r=>r.status==='Approved').length;
+  const allAppr = prAppr+exAppr+miAppr;
   const prAuth  = ALL_PR.filter(r=>r.status==='Authorised').length;
   const exAuth  = ALL_EX.filter(r=>r.status==='Authorised').length;
   const miAuth  = ALL_MI.filter(r=>r.status==='Authorised').length;
@@ -1225,31 +1245,29 @@ function renderDash(){
   const allProc = ALL_PR.concat(ALL_EX).concat(ALL_MI).filter(r=>r.status==='Processed').length;
 
   document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-card stat-link${fin&&allAuth>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','${fin?'Authorised':'Pending'}')">
-      <h3>${fin?allAuth:totalPend}</h3><p>${fin?'Awaiting PO Processing':'Pending Approval'}</p></div>
+    <div class="stat-card stat-link" onclick="goTo('purchase','pr-filter','Pending')">
+      <h3>${totalPend}</h3><p>Pending Manager Approval</p></div>
+    <div class="stat-card stat-link${fin&&allAppr>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Approved')">
+      <h3>${allAppr}</h3><p>Awaiting Finance Auth</p></div>
+    <div class="stat-card stat-link${fin&&allAuth>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Authorised')">
+      <h3>${allAuth}</h3><p>Awaiting PO Processing</p></div>
     <div class="stat-card stat-link" onclick="goTo('purchase','pr-filter','Pending')">
       <h3>${prPend}</h3><p>Purchase Requests Pending</p></div>
     <div class="stat-card stat-link" onclick="goTo('expense','ex-filter','Pending')">
       <h3>${exPend}</h3><p>Expense Claims Pending</p></div>
-    <div class="stat-card stat-link" onclick="goTo('mileage','mi-filter','Pending')">
-      <h3>${miPend}</h3><p>Mileage Claims Pending</p></div>
-    <div class="stat-card stat-link${fin&&prAuth>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Authorised')">
-      <h3>${prAuth}</h3><p>Purchase Requests Authorised</p></div>
     <div class="stat-card stat-link" onclick="goTo('purchase','pr-filter','Processed')">
       <h3>${allProc}</h3><p>Total Processed</p></div>`;
 
   let html = '';
   if(S.role !== 'requestor'){
-    const actionStatus = fin ? 'Authorised' : 'Pending';
-    const heading      = fin ? 'Authorised — PO Processing Required' : 'Pending Items — Action Required';
-    const emptyMsg     = fin ? 'All authorised requests have been processed.' : "No pending items — you're all caught up.";
-    const items = [
-      ...ALL_PR.filter(r=>r.status===actionStatus).map(r=>({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total})),
-      ...ALL_EX.filter(r=>r.status===actionStatus).map(r=>({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total})),
-      ...ALL_MI.filter(r=>r.status===actionStatus).map(r=>({...r,type:'MI',label:'Mileage Claim',ref:r.ref_number,who:r.employee_name,amt:r.total_claim}))
+    const mkItems = status => [
+      ...ALL_PR.filter(r=>r.status===status).map(r=>({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total})),
+      ...ALL_EX.filter(r=>r.status===status).map(r=>({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total})),
+      ...ALL_MI.filter(r=>r.status===status).map(r=>({...r,type:'MI',label:'Mileage Claim',ref:r.ref_number,who:r.employee_name,amt:r.total_claim}))
     ];
-    if(items.length){
-      html = `<div class="toolbar"><h2>${heading}</h2></div>
+    const renderTable = (heading, items) => {
+      if(!items.length) return '';
+      return `<div class="toolbar"><h2>${heading}</h2></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Amount</th><th>Date</th><th></th></tr></thead>
         <tbody>${items.map(i=>`<tr>
@@ -1260,8 +1278,19 @@ function renderDash(){
           <td><button class="btn btn-sm btn-primary" onclick="openByRef('${i.type}','${i.id}')">Review</button></td>
         </tr>`).join('')}</tbody>
       </table></div>`;
+    };
+    if(fin){
+      const approvedItems = mkItems('Approved');
+      const authorisedItems = mkItems('Authorised');
+      html = renderTable('Approved — Finance Authorisation Required', approvedItems)
+           + renderTable('Authorised — PO Processing Required', authorisedItems);
+      if(!approvedItems.length && !authorisedItems.length)
+        html = `<div class="empty"><div class="icon">✅</div><p>All items are up to date — nothing needs your attention.</p></div>`;
     } else {
-      html = `<div class="empty"><div class="icon">✅</div><p>${emptyMsg}</p></div>`;
+      const pendingItems = mkItems('Pending');
+      html = renderTable('Pending Items — Action Required', pendingItems);
+      if(!pendingItems.length)
+        html = `<div class="empty"><div class="icon">✅</div><p>No pending items — you're all caught up.</p></div>`;
     }
   }
   document.getElementById('dash-pending').innerHTML = html;
@@ -1303,6 +1332,7 @@ async function openPRModal(id){
   document.getElementById('pr-lines-body').innerHTML = '';
   document.getElementById('pr-finance-panel').style.display = 'none';
   document.getElementById('pr-auth-note-group').style.display = 'none';
+  document.getElementById('pr-fin-auth-note-group').style.display = 'none';
   document.getElementById('pr-delivery').value = 0;
   calcPRTotals();
   STAGED.pr = [];
@@ -1380,21 +1410,39 @@ async function openPRModal(id){
     document.getElementById('pr-finance-notes').value = r.finance_notes||'';
   }
 
-  // authoriser notes — editable for authoriser on Pending; read-only summary for everyone once decided
+  // Manager approval notes — editable for authoriser/finance on Pending; read-only once decided
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('pr-auth-note-group').style.display = '';
     document.getElementById('pr-auth-notes').readOnly = false;
-  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+  } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
     document.getElementById('pr-auth-note-group').style.display = '';
-    document.querySelector('#pr-auth-note-group label').textContent =
-      (r.status==='Rejected' ? 'Rejected' : 'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    const mgrLabel = (r.authorised_by ? 'Approved' : 'Rejected') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.querySelector('#pr-auth-note-group label').textContent = mgrLabel;
     document.getElementById('pr-auth-notes').value = r.authoriser_notes||'No notes added.';
     document.getElementById('pr-auth-notes').readOnly = true;
   }
 
+  // Finance authorisation notes — editable for finance on Approved; read-only once authorised
+  if(S.role==='finance' && r.status==='Approved'){
+    document.getElementById('pr-fin-auth-note-group').style.display = '';
+    document.getElementById('pr-fin-auth-notes').readOnly = false;
+  } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
+    document.getElementById('pr-fin-auth-note-group').style.display = '';
+    document.querySelector('#pr-fin-auth-note-group label').textContent =
+      'Authorised by ' + (r.finance_authorised_by||'—') + ' on ' + (r.finance_authorised_date||'—');
+    document.getElementById('pr-fin-auth-notes').value = r.finance_authoriser_notes||'No notes added.';
+    document.getElementById('pr-fin-auth-notes').readOnly = true;
+  }
+
   // footer buttons
   let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
+  // Level 1: Manager approval (Pending → Approved)
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.requested_by_email!==S.user.email){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Approved')">Approve</button>`;
+  }
+  // Level 2: Finance authorisation (Approved → Authorised)
+  if(S.role==='finance' && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1487,7 +1535,6 @@ async function savePR(){
   toast(`${ref} submitted successfully.`);
   closeModal('pr-modal');
   if(authEmail) await sendEmail('Purchase Request Pending Your Approval', ref, by, sub+del, 'purchase_request', authEmail);
-  await sendEmail('New Purchase Request Submitted', ref, by, sub+del, 'purchase_request', FINANCE_EMAIL);
   await loadPR(); renderPR(); renderDash(); updateBadges();
 }
 
@@ -1549,6 +1596,7 @@ async function openEXModal(id){
   document.getElementById('ex-lines-body').innerHTML = '';
   document.getElementById('ex-finance-panel').style.display = 'none';
   document.getElementById('ex-auth-note-group').style.display = 'none';
+  document.getElementById('ex-fin-auth-note-group').style.display = 'none';
   calcEXTotals();
   STAGED.ex = [];
   document.getElementById('ex-pending-files').innerHTML = '';
@@ -1592,19 +1640,39 @@ async function openEXModal(id){
     document.getElementById('ex-finance-panel').style.display = '';
     document.getElementById('ex-finance-notes').value = r.finance_notes||'';
   }
+
+  // Manager approval notes
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('ex-auth-note-group').style.display = '';
     document.getElementById('ex-auth-notes').readOnly = false;
-  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+  } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
     document.getElementById('ex-auth-note-group').style.display = '';
-    document.querySelector('#ex-auth-note-group label').textContent =
-      (r.status==='Rejected'?'Rejected':'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    const mgrLabel = (r.authorised_by ? 'Approved' : 'Rejected') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.querySelector('#ex-auth-note-group label').textContent = mgrLabel;
     document.getElementById('ex-auth-notes').value = r.authoriser_notes||'No notes added.';
     document.getElementById('ex-auth-notes').readOnly = true;
   }
 
+  // Finance authorisation notes
+  if(S.role==='finance' && r.status==='Approved'){
+    document.getElementById('ex-fin-auth-note-group').style.display = '';
+    document.getElementById('ex-fin-auth-notes').readOnly = false;
+  } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
+    document.getElementById('ex-fin-auth-note-group').style.display = '';
+    document.querySelector('#ex-fin-auth-note-group label').textContent =
+      'Authorised by ' + (r.finance_authorised_by||'—') + ' on ' + (r.finance_authorised_date||'—');
+    document.getElementById('ex-fin-auth-notes').value = r.finance_authoriser_notes||'No notes added.';
+    document.getElementById('ex-fin-auth-notes').readOnly = true;
+  }
+
   let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
+  // Level 1: Manager approval (Pending → Approved)
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Approved')">Approve</button>`;
+  }
+  // Level 2: Finance authorisation (Approved → Authorised)
+  if(S.role==='finance' && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1690,7 +1758,6 @@ async function saveEX(){
   logAction('submitted','expense_claim',ins.id,ref,{employee:emp,total:tot});
   toast(`${ref} submitted.`); closeModal('ex-modal');
   if(authEmail) await sendEmail('Expense Claim Pending Your Approval', ref, emp, tot, 'expense_claim', authEmail);
-  await sendEmail('New Expense Claim Submitted', ref, emp, tot, 'expense_claim', FINANCE_EMAIL);
   await loadEX(); renderEX(); renderDash(); updateBadges();
 }
 
@@ -1736,6 +1803,7 @@ async function openMIModal(id){
   document.getElementById('mi-journeys-body').innerHTML = '';
   document.getElementById('mi-finance-panel').style.display = 'none';
   document.getElementById('mi-auth-note-group').style.display = 'none';
+  document.getElementById('mi-fin-auth-note-group').style.display = 'none';
   calcMITotals();
   STAGED.mi = [];
   document.getElementById('mi-pending-files').innerHTML = '';
@@ -1812,19 +1880,38 @@ async function openMIModal(id){
     document.getElementById('mi-finance-panel').style.display = '';
     document.getElementById('mi-finance-notes').value = r.finance_notes||'';
   }
+  // Manager approval notes
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('mi-auth-note-group').style.display = '';
     document.getElementById('mi-auth-notes').readOnly = false;
-  } else if(['Authorised','Rejected','Processed'].includes(r.status)){
+  } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
     document.getElementById('mi-auth-note-group').style.display = '';
-    document.querySelector('#mi-auth-note-group label').textContent =
-      (r.status==='Rejected'?'Rejected':'Authorised') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    const mgrLabel = (r.authorised_by ? 'Approved' : 'Rejected') + ' by ' + (r.authorised_by||'—') + ' on ' + (r.authorised_date||'—');
+    document.querySelector('#mi-auth-note-group label').textContent = mgrLabel;
     document.getElementById('mi-auth-notes').value = r.authoriser_notes||'No notes added.';
     document.getElementById('mi-auth-notes').readOnly = true;
   }
 
+  // Finance authorisation notes
+  if(S.role==='finance' && r.status==='Approved'){
+    document.getElementById('mi-fin-auth-note-group').style.display = '';
+    document.getElementById('mi-fin-auth-notes').readOnly = false;
+  } else if(['Authorised','Processed'].includes(r.status) && r.finance_authorised_by){
+    document.getElementById('mi-fin-auth-note-group').style.display = '';
+    document.querySelector('#mi-fin-auth-note-group label').textContent =
+      'Authorised by ' + (r.finance_authorised_by||'—') + ' on ' + (r.finance_authorised_date||'—');
+    document.getElementById('mi-fin-auth-notes').value = r.finance_authoriser_notes||'No notes added.';
+    document.getElementById('mi-fin-auth-notes').readOnly = true;
+  }
+
   let btns = `<button class="btn btn-secondary" onclick="closeModal('mi-modal')">Close</button>`;
+  // Level 1: Manager approval (Pending → Approved)
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
+    btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
+    btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Approved')">Approve</button>`;
+  }
+  // Level 2: Finance authorisation (Approved → Authorised)
+  if(S.role==='finance' && r.status==='Approved'){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1980,23 +2067,44 @@ async function saveMIFinance(id){
   await loadMI(); renderMI(); renderDash(); updateBadges();
 }
 
-// ── STATUS UPDATE (authoriser) ────────────────────────────
+// ── STATUS UPDATE (two-level authorisation) ──────────────
 async function updateStatus(type, id, newStatus){
   const tables = {PR:'purchase_requests', EX:'expense_claims', MI:'mileage_claims'};
   const notesId = {PR:'pr-auth-notes', EX:'ex-auth-notes', MI:'mi-auth-notes'};
-  const notes = document.getElementById(notesId[type])?.value||'';
-  const upd = {
-    status: newStatus,
-    authorised_by: S.name,
-    authorised_date: today(),
-    authoriser_notes: notes,
-    updated_at: new Date().toISOString()
-  };
+  const finNotesId = {PR:'pr-fin-auth-notes', EX:'ex-fin-auth-notes', MI:'mi-fin-auth-notes'};
+
+  const all = {PR:ALL_PR, EX:ALL_EX, MI:ALL_MI}[type];
+  const rec = all.find(x=>x.id===id);
+  const currentStatus = rec?.status;
+
+  const upd = { status: newStatus, updated_at: new Date().toISOString() };
+
+  if(currentStatus === 'Approved'){
+    // Level 2: Finance authorisation (Approved → Authorised or Rejected)
+    upd.finance_authorised_by = S.name;
+    upd.finance_authorised_date = today();
+    upd.finance_authoriser_notes = document.getElementById(finNotesId[type])?.value||'';
+  } else {
+    // Level 1: Manager approval (Pending → Approved or Rejected)
+    upd.authorised_by = S.name;
+    upd.authorised_date = today();
+    upd.authoriser_notes = document.getElementById(notesId[type])?.value||'';
+  }
+
   const { error } = await _db.from(tables[type]).update(upd).eq('id',id);
   if(error){ toast(error.message,'err'); return; }
-  const refNum = (type==='PR'?ALL_PR:type==='EX'?ALL_EX:ALL_MI).find(x=>x.id===id)?.ref_number;
+  const refNum = rec?.ref_number;
   const rtMap  = {PR:'purchase_request',EX:'expense_claim',MI:'mileage_claim'};
-  logAction(newStatus.toLowerCase(), rtMap[type], id, refNum, {notes});
+  logAction(newStatus.toLowerCase(), rtMap[type], id, refNum, {notes: upd.authoriser_notes||upd.finance_authoriser_notes||''});
+
+  // Email notifications for approval chain
+  if(newStatus === 'Approved'){
+    // Manager approved — notify finance (Ruth) for second-level authorisation
+    const amt = rec?.total || rec?.total_claim || 0;
+    const who = rec?.requested_by || rec?.employee_name || '';
+    await sendEmail('Manager Approved — Finance Authorisation Required', refNum, who, amt, rtMap[type], FINANCE_EMAIL);
+  }
+
   toast(`Request ${newStatus.toLowerCase()}.`);
   closeModal({PR:'pr-modal',EX:'ex-modal',MI:'mi-modal'}[type]);
   await refreshAll();
@@ -2166,6 +2274,7 @@ function renderAuditLog(){
   const fmtDT = s=>{ const d=new Date(s); return d.toLocaleDateString('en-GB')+' '+d.toTimeString().slice(0,8); };
   const actionStyle = a=>{
     if(['submitted'].includes(a))                      return 'background:#dcfce7;color:#166534';
+    if(['approved'].includes(a))                       return 'background:#fef9c3;color:#854d0e';
     if(['authorised'].includes(a))                     return 'background:#d1fae5;color:#065f46';
     if(['processed'].includes(a))                      return 'background:#dbeafe;color:#1e3a8a';
     if(['rejected','deleted','hard_deleted'].includes(a)) return 'background:#fee2e2;color:#7f1d1d';
@@ -2749,8 +2858,10 @@ const EXPORT_COLS = {
     {key:'pl_account',     label:'PL Account',        accounts:true},
     {key:'payment_method', label:'Payment Method',    accounts:true},
     {key:'status',         label:'Status',            accounts:true},
-    {key:'authorised_by',  label:'Authorised By',     accounts:false},
-    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'authorised_by',  label:'Manager Approved By', accounts:false},
+    {key:'authorised_date',label:'Manager Approved Date',accounts:false},
+    {key:'finance_authorised_by',  label:'Finance Auth By',  accounts:false},
+    {key:'finance_authorised_date',label:'Finance Auth Date', accounts:false},
     {key:'finance_notes',  label:'Finance Notes',     accounts:false},
   ],
   expense_claims:[
@@ -2763,8 +2874,10 @@ const EXPORT_COLS = {
     {key:'total_ex_vat',   label:'Ex VAT (£)',        accounts:true},
     {key:'invoice_number', label:'Invoice Number',    accounts:true},
     {key:'status',         label:'Status',            accounts:true},
-    {key:'authorised_by',  label:'Authorised By',     accounts:false},
-    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'authorised_by',  label:'Manager Approved By', accounts:false},
+    {key:'authorised_date',label:'Manager Approved Date',accounts:false},
+    {key:'finance_authorised_by',  label:'Finance Auth By',  accounts:false},
+    {key:'finance_authorised_date',label:'Finance Auth Date', accounts:false},
     {key:'finance_notes',  label:'Finance Notes',     accounts:false},
   ],
   mileage_claims:[
@@ -2780,8 +2893,10 @@ const EXPORT_COLS = {
     {key:'overnight_total', label:'Overnight (£)',     accounts:false},
     {key:'total_claim',     label:'Total Claim (£)',   accounts:true},
     {key:'status',          label:'Status',            accounts:true},
-    {key:'authorised_by',   label:'Authorised By',     accounts:false},
-    {key:'authorised_date', label:'Auth Date',         accounts:false},
+    {key:'authorised_by',   label:'Manager Approved By', accounts:false},
+    {key:'authorised_date', label:'Manager Approved Date',accounts:false},
+    {key:'finance_authorised_by',   label:'Finance Auth By',  accounts:false},
+    {key:'finance_authorised_date', label:'Finance Auth Date', accounts:false},
     {key:'finance_notes',   label:'Finance Notes',     accounts:false},
   ],
   all:[
@@ -2800,8 +2915,10 @@ const EXPORT_COLS = {
     {key:'pl_account',     label:'PL Account',        accounts:true},
     {key:'payment_method', label:'Payment Method',    accounts:false},
     {key:'status',         label:'Status',            accounts:true},
-    {key:'authorised_by',  label:'Authorised By',     accounts:false},
-    {key:'authorised_date',label:'Auth Date',         accounts:false},
+    {key:'authorised_by',  label:'Manager Approved By', accounts:false},
+    {key:'authorised_date',label:'Manager Approved Date',accounts:false},
+    {key:'finance_authorised_by',  label:'Finance Auth By',  accounts:false},
+    {key:'finance_authorised_date',label:'Finance Auth Date', accounts:false},
     {key:'finance_notes',  label:'Finance Notes',     accounts:false},
   ]
 };
