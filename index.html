@@ -1394,7 +1394,7 @@ async function openPRModal(id){
 
   // footer buttons
   let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending'){ → if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){&& r.requested_by_email!==S.user.email;
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.requested_by_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1604,7 +1604,7 @@ async function openEXModal(id){
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending' && r.employee_email!==S.user.email){
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1824,7 +1824,7 @@ async function openMIModal(id){
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('mi-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending' && r.employee_email!==S.user.email){
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
   }
