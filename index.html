@@ -1381,7 +1381,7 @@ async function openPRModal(id){
   }
 
   // authoriser notes — editable for authoriser on Pending; read-only summary for everyone once decided
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('pr-auth-note-group').style.display = '';
     document.getElementById('pr-auth-notes').readOnly = false;
   } else if(['Authorised','Rejected','Processed'].includes(r.status)){
@@ -1394,7 +1394,7 @@ async function openPRModal(id){
 
   // footer buttons
   let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
-  if(S.role==='authoriser' && r.status==='Pending' && r.requested_by_email!==S.user.email){
+  if(S.role==='authoriser' && r.status==='Pending'){ → if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){&& r.requested_by_email!==S.user.email;
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
@@ -1592,7 +1592,7 @@ async function openEXModal(id){
     document.getElementById('ex-finance-panel').style.display = '';
     document.getElementById('ex-finance-notes').value = r.finance_notes||'';
   }
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('ex-auth-note-group').style.display = '';
     document.getElementById('ex-auth-notes').readOnly = false;
   } else if(['Authorised','Rejected','Processed'].includes(r.status)){
@@ -1812,7 +1812,7 @@ async function openMIModal(id){
     document.getElementById('mi-finance-panel').style.display = '';
     document.getElementById('mi-finance-notes').value = r.finance_notes||'';
   }
-  if(S.role==='authoriser' && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
     document.getElementById('mi-auth-note-group').style.display = '';
     document.getElementById('mi-auth-notes').readOnly = false;
   } else if(['Authorised','Rejected','Processed'].includes(r.status)){
