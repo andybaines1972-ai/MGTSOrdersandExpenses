@@ -223,6 +223,7 @@
   .mock-table tr:last-child td{border-bottom:none}
   .status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase}
   .status-badge.pending{background:#fef3c7;color:#92400e}
+  .status-badge.approved{background:#fef9c3;color:#854d0e}
   .status-badge.authorised{background:#d1fae5;color:#065f46}
   .status-badge.processed{background:#e0e7ff;color:#3730a3}
   .status-badge.rejected{background:#fee2e2;color:#991b1b}
@@ -282,7 +283,7 @@
     <div class="subtitle">User Guide — All Roles</div>
   </div>
   <div class="cover-meta">
-    <p><strong>Version 2.0</strong></p>
+    <p><strong>Version 3.0</strong></p>
     <p>June 2026</p>
     <p style="margin-top:12px">For help contact:</p>
     <p>Andy Baines</p>
@@ -315,7 +316,7 @@
         <td>
           <ul>
             <li>Everything a Requestor can do</li>
-            <li>Approve or reject requests assigned to them</li>
+            <li><strong>Level 1 approval:</strong> Approve or reject Pending requests (moves to Approved)</li>
             <li>View all pending items on the dashboard action queue</li>
           </ul>
         </td>
@@ -325,9 +326,11 @@
         <td>
           <ul>
             <li>Everything an Authoriser can do</li>
+            <li><strong>Level 2 authorisation:</strong> Authorise or reject Approved requests (moves to Authorised)</li>
             <li>Process POs on authorised requests (mark as Processed)</li>
             <li>View all submissions across all users</li>
-            <li>Export data to CSV</li>
+            <li>Export data to CSV / XLSX</li>
+            <li>Delegate finance authorisation to another user (holiday cover)</li>
           </ul>
         </td>
       </tr>
@@ -335,9 +338,10 @@
         <td><span class="badge admin">Admin / Finance</span></td>
         <td>
           <ul>
-            <li>Manage users — add, edit, activate/deactivate</li>
+            <li>Manage users — add, edit, activate/deactivate, delete</li>
             <li>Bulk import users via CSV</li>
-            <li>Download/upload the user list template</li>
+            <li>Set up finance delegation for holiday cover</li>
+            <li>View change log and system debug tools</li>
           </ul>
         </td>
       </tr>
@@ -363,12 +367,22 @@
       </li>
       <li><a href="#s4">Raising an Expense Claim</a></li>
       <li><a href="#s5">Raising a Mileage Claim</a></li>
-      <li><a href="#s6">Authorising Requests</a></li>
-      <li><a href="#s7">Finance: Processing POs</a></li>
-      <li><a href="#s8">Viewing &amp; Managing Your Requests</a></li>
-      <li><a href="#s9">Exporting Data to CSV</a></li>
-      <li><a href="#s10">Admin: Managing Users</a></li>
-      <li><a href="#s11">Tips &amp; Common Questions</a></li>
+      <li><a href="#s6">Approving Requests (Line Manager)</a>
+        <ul class="sub">
+          <li><a href="#s6">Level 1: Manager approval</a></li>
+        </ul>
+      </li>
+      <li><a href="#s7">Finance Authorisation (Level 2)</a>
+        <ul class="sub">
+          <li><a href="#s7">Authorising approved requests</a></li>
+        </ul>
+      </li>
+      <li><a href="#s8">Finance: Processing POs</a></li>
+      <li><a href="#s9">Viewing &amp; Managing Your Requests</a></li>
+      <li><a href="#s10">Exporting Data</a></li>
+      <li><a href="#s11">Admin: Managing Users</a></li>
+      <li><a href="#s12">Finance Delegation (Holiday Cover)</a></li>
+      <li><a href="#s13">Tips &amp; Common Questions</a></li>
     </ol>
   </div>
 
@@ -479,25 +493,25 @@
         </div>
         <!-- stat cards -->
         <div class="mock-stats">
-          <div class="mock-stat urgent">
+          <div class="mock-stat">
             <div class="ms-num">4</div>
+            <div class="ms-label">Pending Manager Approval</div>
+          </div>
+          <div class="mock-stat urgent">
+            <div class="ms-num">3</div>
+            <div class="ms-label">Awaiting Finance Auth</div>
+          </div>
+          <div class="mock-stat urgent">
+            <div class="ms-num">2</div>
             <div class="ms-label">Awaiting PO Processing</div>
           </div>
           <div class="mock-stat">
-            <div class="ms-num">3</div>
+            <div class="ms-num">2</div>
             <div class="ms-label">Purchase Requests Pending</div>
           </div>
           <div class="mock-stat">
             <div class="ms-num">1</div>
             <div class="ms-label">Expense Claims Pending</div>
-          </div>
-          <div class="mock-stat">
-            <div class="ms-num">0</div>
-            <div class="ms-label">Mileage Claims Pending</div>
-          </div>
-          <div class="mock-stat">
-            <div class="ms-num">4</div>
-            <div class="ms-label">Purchase Requests Authorised</div>
           </div>
           <div class="mock-stat">
             <div class="ms-num">12</div>
@@ -517,17 +531,29 @@
       </div>
 
       <table class="role-table" style="margin-top:12px">
-        <tr><th>Role</th><th>What the first card shows</th></tr>
-        <tr><td><span class="badge requestor">Requestor</span></td><td>Total pending items across all three types</td></tr>
-        <tr><td><span class="badge authoriser">Authoriser</span></td><td>Pending items awaiting your approval</td></tr>
-        <tr><td><span class="badge finance">Finance</span></td><td><strong style="color:var(--red)">Authorised items awaiting PO processing</strong> — shown in red when there are items to action</td></tr>
+        <tr><th>Role</th><th>What the dashboard shows</th></tr>
+        <tr><td><span class="badge requestor">Requestor</span></td><td>Total pending items across all three types — your own submissions only</td></tr>
+        <tr><td><span class="badge authoriser">Authoriser</span></td><td>Pending items awaiting your manager approval. Action queue lists items you need to approve.</td></tr>
+        <tr><td><span class="badge finance">Finance</span></td><td><strong style="color:var(--red)">Awaiting Finance Auth</strong> (Approved items needing your authorisation) and <strong style="color:var(--red)">Awaiting PO Processing</strong> (Authorised items ready for POs) — both shown in red when items need action</td></tr>
       </table>
 
       <div class="callout info" style="margin-top:16px">
         <div class="callout-icon">ℹ️</div>
         <div>
           <strong>Action queue below the cards</strong>
-          Authorisers and Finance staff see a table of items that need their attention directly below the stat cards — no need to click into each tab individually.
+          Authorisers see Pending items needing their approval. Finance sees two queues: <strong>Approved items</strong> needing finance authorisation and <strong>Authorised items</strong> needing PO processing. Delegates also see Approved items during their delegation period.
+        </div>
+      </div>
+
+      <div class="callout warn" style="margin-top:12px">
+        <div class="callout-icon">🔄</div>
+        <div>
+          <strong>Two-level approval flow</strong>
+          Every request now goes through two levels of approval before processing:<br>
+          <span class="status-badge pending">Pending</span> → <em>Line manager approves</em> →
+          <span class="status-badge approved">Approved</span> → <em>Finance authorises</em> →
+          <span class="status-badge authorised">Authorised</span> → <em>Finance processes</em> →
+          <span class="status-badge processed">Processed</span>
         </div>
       </div>
     </div>
@@ -676,7 +702,7 @@
           <div class="step-num">6</div>
           <div class="step-body">
             <strong>Click <em>Submit Request</em></strong>
-            <p>The request is saved as <span class="status-badge pending">Pending</span> and the authoriser is notified by email.</p>
+            <p>The request is saved as <span class="status-badge pending">Pending</span> and your line manager (authoriser) is notified by email. Once they approve it, Finance is notified automatically for the second-level authorisation.</p>
           </div>
         </li>
       </ol>
@@ -935,21 +961,21 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════ 6 · AUTHORISING ══════════════════════════════ -->
+  <!-- ══════════════════════════ 6 · MANAGER APPROVAL ══════════════════════════ -->
   <div class="section" id="s6">
     <div class="section-header">
       <div class="section-num">6</div>
-      <h2>Authorising Requests</h2>
+      <h2>Approving Requests (Line Manager)</h2>
       <span class="role-tag">Authoriser / Finance</span>
     </div>
     <div class="section-body">
 
-      <p style="margin-bottom:16px">When a request is assigned to you, you'll see it in your <strong>Dashboard action queue</strong> and receive an email notification.</p>
+      <p style="margin-bottom:16px">This is <strong>Level 1</strong> of the two-level approval process. When a request is assigned to you, you'll see it in your <strong>Dashboard action queue</strong> and receive an email notification.</p>
 
       <div class="screen">
         <div class="screen-bar">
           <div class="screen-dots"><span></span><span></span><span></span></div>
-          <div class="screen-url">Dashboard — Action Queue</div>
+          <div class="screen-url">Dashboard — Action Queue (Authoriser view)</div>
         </div>
         <div style="padding:16px 20px;background:#fff">
           <div style="font-size:13px;font-weight:800;margin-bottom:10px">Pending Items — Action Required</div>
@@ -964,7 +990,7 @@
               <td>£13.50</td>
               <td><span class="status-badge pending">Pending</span></td>
               <td>
-                <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Authorise</button>
+                <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Approve</button>
                 <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red)">✕ Reject</button>
               </td>
             </tr>
@@ -974,6 +1000,76 @@
               <td>David Bridgens</td>
               <td>£61.40</td>
               <td><span class="status-badge pending">Pending</span></td>
+              <td>
+                <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Approve</button>
+                <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red)">✕ Reject</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <ol class="steps" style="margin-top:20px">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Review the request</strong>
+            <p>Click <strong>Review</strong> to open the full request and see all details, items, and any attached documents.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Add optional notes</strong>
+            <p>Use the <em>Manager Approval Notes</em> field to add any comments — particularly useful if rejecting to explain the reason.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Click <em>Approve</em> or <em>Reject</em></strong>
+            <p>Approving moves the request to <span class="status-badge approved">Approved</span> and Finance is automatically notified by email for the second-level authorisation. Rejecting moves it to <span class="status-badge rejected">Rejected</span>.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div>
+          <strong>You cannot approve your own requests</strong>
+          If you submitted a request yourself, the Approve/Reject buttons will not appear when you view it. Another authoriser must approve it.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 7 · FINANCE AUTHORISATION ════════════════════ -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Finance Authorisation (Level 2)</h2>
+      <span class="role-tag">Finance / Delegate</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">This is <strong>Level 2</strong> of the approval process. Once a line manager approves a request, it moves to <span class="status-badge approved">Approved</span> and appears in Finance's action queue for authorisation.</p>
+
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dots"><span></span><span></span><span></span></div>
+          <div class="screen-url">Dashboard — Finance view</div>
+        </div>
+        <div style="padding:16px 20px;background:#fff">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px">Approved — Finance Authorisation Required</div>
+          <table class="mock-table">
+            <tr>
+              <th>Ref</th><th>Type</th><th>From</th><th>Amount</th><th>Actions</th>
+            </tr>
+            <tr>
+              <td><strong>PRQ-0012</strong></td>
+              <td>Purchase Request</td>
+              <td>Steve Palmer</td>
+              <td>£13.50</td>
               <td>
                 <button class="mock-btn primary" style="margin-right:4px;font-size:10px">✓ Authorise</button>
                 <button class="mock-btn secondary" style="font-size:10px;color:var(--red);border-color:var(--red)">✕ Reject</button>
@@ -987,45 +1083,59 @@
         <li>
           <div class="step-num">1</div>
           <div class="step-body">
-            <strong>Review the request</strong>
-            <p>Click the reference number (e.g. <strong>PRQ-0012</strong>) to open the full request and see all details, items, and any attached documents.</p>
+            <strong>Click the <em>Awaiting Finance Auth</em> card on the Dashboard</strong>
+            <p>Or click <strong>Review</strong> on any Approved item in the action queue.</p>
           </div>
         </li>
         <li>
           <div class="step-num">2</div>
           <div class="step-body">
-            <strong>Click <em>✓ Authorise</em> or <em>✕ Reject</em></strong>
-            <p>The status updates immediately. Finance is notified automatically when you authorise a purchase request.</p>
+            <strong>Review the request and manager approval</strong>
+            <p>You can see who approved it and their notes in the read-only <em>Manager Approval Notes</em> section.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Add optional Finance Authorisation Notes</strong>
+            <p>Use the <em>Finance Authorisation Notes</em> field for any comments.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click <em>Authorise</em> or <em>Reject</em></strong>
+            <p>Authorising moves the request to <span class="status-badge authorised">Authorised</span> — it is now ready for PO processing. Rejecting sends it back to <span class="status-badge rejected">Rejected</span>.</p>
           </div>
         </li>
       </ol>
 
-      <div class="callout warn">
-        <div class="callout-icon">⚠️</div>
+      <div class="callout role">
+        <div class="callout-icon">🏖️</div>
         <div>
-          <strong>You cannot authorise your own requests</strong>
-          If you submitted a request yourself, the Authorise/Reject buttons will not appear when you view it. Another authoriser must approve it.
+          <strong>Holiday cover: Finance Delegation</strong>
+          If Finance is away, they can delegate authorisation powers to another user via <strong>Admin → Delegation</strong>. The delegate sees Approved items and can authorise them, but cannot process POs or access admin functions. See <a href="#s12">Section 12</a>.
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════ 7 · FINANCE / PO ═════════════════════════════ -->
-  <div class="section" id="s7">
+  <!-- ══════════════════════════ 8 · FINANCE / PO ═════════════════════════════ -->
+  <div class="section" id="s8">
     <div class="section-header">
-      <div class="section-num">7</div>
+      <div class="section-num">8</div>
       <h2>Finance: Processing POs</h2>
       <span class="role-tag">Finance Only</span>
     </div>
     <div class="section-body">
 
-      <p style="margin-bottom:16px">Once a request is <span class="status-badge authorised">Authorised</span>, Finance needs to raise the PO, place the order, and mark it as Processed in the hub.</p>
+      <p style="margin-bottom:16px">Once a request is <span class="status-badge authorised">Authorised</span> (both manager and finance have signed off), Finance can raise the PO, place the order, and mark it as Processed.</p>
 
       <div class="callout role">
         <div class="callout-icon">🔴</div>
         <div>
-          <strong>Finance dashboard shows your action queue</strong>
-          The first stat card turns <strong style="color:var(--red)">red</strong> when there are authorised items awaiting PO processing. Click it to jump straight to the filtered list.
+          <strong>Finance dashboard shows your processing queue</strong>
+          The <em>Awaiting PO Processing</em> stat card turns <strong style="color:var(--red)">red</strong> when there are authorised items ready for POs. Click it to jump straight to the filtered list.
         </div>
       </div>
 
@@ -1041,7 +1151,7 @@
           <div class="step-num">2</div>
           <div class="step-body">
             <strong>Open the request and review the details</strong>
-            <p>Check the supplier, items, total, and any attached quotes.</p>
+            <p>Check the supplier, items, total, and any attached quotes. You can also see both the manager approval and finance authorisation notes.</p>
           </div>
         </li>
         <li>
@@ -1055,7 +1165,7 @@
           <div class="step-num">4</div>
           <div class="step-body">
             <strong>Click <em>Save &amp; Process</em></strong>
-            <p>The request moves to <span class="status-badge processed">Processed</span> status. The requestor is notified by email.</p>
+            <p>The request moves to <span class="status-badge processed">Processed</span> status.</p>
           </div>
         </li>
       </ol>
@@ -1071,7 +1181,7 @@
       <div class="screen">
         <div class="screen-bar">
           <div class="screen-dots"><span></span><span></span><span></span></div>
-          <div class="screen-url">Purchase Requests — Authorised</div>
+          <div class="screen-url">Purchase Requests — Authorised (ready for PO)</div>
         </div>
         <div style="padding:16px 20px;background:#fff">
           <table class="mock-table">
@@ -1085,7 +1195,7 @@
               <td>£13.50</td>
               <td><span class="status-badge authorised">Authorised</span></td>
               <td>
-                <button class="mock-btn primary" style="font-size:10px">✓ Mark Processed</button>
+                <button class="mock-btn primary" style="font-size:10px">Save &amp; Process</button>
               </td>
             </tr>
           </table>
@@ -1094,10 +1204,10 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════ 8 · VIEWING / MANAGING ══════════════════════ -->
-  <div class="section" id="s8">
+  <!-- ══════════════════════════ 9 · VIEWING / MANAGING ══════════════════════ -->
+  <div class="section" id="s9">
     <div class="section-header">
-      <div class="section-num">8</div>
+      <div class="section-num">9</div>
       <h2>Viewing &amp; Managing Your Requests</h2>
       <span class="role-tag">All Roles</span>
     </div>
@@ -1155,18 +1265,18 @@
       </div>
 
       <ul style="margin-top:16px;padding-left:20px;font-size:14px;color:var(--muted)">
-        <li style="margin-bottom:8px"><strong style="color:var(--dark)">Filter by status</strong> — use the dropdown to show only Pending, Authorised, Rejected, or Processed items.</li>
+        <li style="margin-bottom:8px"><strong style="color:var(--dark)">Filter by status</strong> — use the dropdown to show only Pending, Approved, Authorised, Rejected, or Processed items.</li>
         <li style="margin-bottom:8px"><strong style="color:var(--dark)">View</strong> — opens the full detail view. From here you can see all fields, print the request (via your browser's print), and download any attachments.</li>
         <li style="margin-bottom:8px"><strong style="color:var(--dark)">Delete</strong> — only visible on your own requests, and only when the request is still <span class="status-badge pending">Pending</span>. Once authorised, you cannot delete it.</li>
       </ul>
     </div>
   </div>
 
-  <!-- ══════════════════════════ 9 · CSV EXPORT ═══════════════════════════════ -->
-  <div class="section" id="s9">
+  <!-- ══════════════════════════ 10 · EXPORT ═══════════════════════════════ -->
+  <div class="section" id="s10">
     <div class="section-header">
-      <div class="section-num">9</div>
-      <h2>Exporting Data to CSV</h2>
+      <div class="section-num">10</div>
+      <h2>Exporting Data</h2>
       <span class="role-tag">Finance / Admin</span>
     </div>
     <div class="section-body">
@@ -1200,10 +1310,10 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════ 10 · ADMIN ════════════════════════════════════ -->
-  <div class="section" id="s10">
+  <!-- ══════════════════════════ 11 · ADMIN ════════════════════════════════════ -->
+  <div class="section" id="s11">
     <div class="section-header">
-      <div class="section-num">10</div>
+      <div class="section-num">11</div>
       <h2>Admin: Managing Users</h2>
       <span class="role-tag">Finance / Admin</span>
     </div>
@@ -1329,10 +1439,88 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════ 11 · TIPS ════════════════════════════════════ -->
-  <div class="section" id="s11">
+  <!-- ══════════════════════════ 12 · DELEGATION ═══════════════════════════════ -->
+  <div class="section" id="s12">
     <div class="section-header">
-      <div class="section-num">11</div>
+      <div class="section-num">12</div>
+      <h2>Finance Delegation (Holiday Cover)</h2>
+      <span class="role-tag">Finance / Admin</span>
+    </div>
+    <div class="section-body">
+
+      <p style="margin-bottom:16px">When Finance is on holiday or unavailable, they can delegate the <strong>finance authorisation</strong> (Level 2) to another user for a specific date range. The delegate can authorise Approved requests but <strong>cannot</strong> process POs, access admin, or perform other finance-only functions.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Go to Admin → Delegation tab</strong>
+            <p>This tab is only visible to Finance users.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Select the delegate user</strong>
+            <p>Choose any active non-finance user from the dropdown (e.g. a senior authoriser).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Set the date range and reason</strong>
+            <p>Enter the <strong>From</strong> and <strong>To</strong> dates for the delegation period. Add an optional reason (e.g. "Annual leave").</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click <em>Set Delegation</em></strong>
+            <p>The delegation is active immediately if today falls within the date range. The delegate will see a green <strong>Finance Delegate</strong> badge in their nav bar when they next sign in.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout role">
+        <div class="callout-icon">👤</div>
+        <div>
+          <strong>What the delegate sees</strong>
+          <ul style="margin-top:6px;padding-left:16px;font-size:13px">
+            <li>A green <strong>Finance Delegate</strong> badge next to their role in the nav bar</li>
+            <li>A toast notification on login confirming their delegation period</li>
+            <li><span class="status-badge approved">Approved</span> items appear in their dashboard action queue</li>
+            <li><strong>Authorise</strong> and <strong>Reject</strong> buttons appear on Approved requests</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div>
+          <strong>Revoking a delegation early</strong>
+          If Finance returns early, go to <strong>Admin → Delegation</strong> and click <strong>Revoke</strong> next to the active delegation. The delegate loses finance auth powers immediately.
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">ℹ️</div>
+        <div>
+          <strong>Delegation limits</strong>
+          <ul style="margin-top:6px;padding-left:16px;font-size:13px">
+            <li>Delegates can <strong>only authorise</strong> — they cannot process POs, access user management, or export data</li>
+            <li>Delegations automatically expire at the end of the To date</li>
+            <li>Multiple delegations can be active at the same time (e.g. for team cover)</li>
+            <li>All delegations are logged in the Change Log for audit purposes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ 13 · TIPS ════════════════════════════════════ -->
+  <div class="section" id="s13">
+    <div class="section-header">
+      <div class="section-num">13</div>
       <h2>Tips &amp; Common Questions</h2>
       <span class="role-tag">All Roles</span>
     </div>
@@ -1355,7 +1543,17 @@
 
       <div class="highlight">
         <strong>Q: I submitted a request but the Finance team can't see it.</strong><br>
-        Check the status — Finance only act on <span class="status-badge authorised">Authorised</span> requests. If yours is still <span class="status-badge pending">Pending</span> it needs an authoriser to approve it first.
+        Requests go through two levels of approval. If yours is still <span class="status-badge pending">Pending</span>, your line manager needs to approve it first. Once they do, it moves to <span class="status-badge approved">Approved</span> and Finance can authorise it. Finance can only process POs once it reaches <span class="status-badge authorised">Authorised</span>.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: What's the difference between Approved and Authorised?</strong><br>
+        <span class="status-badge approved">Approved</span> means your line manager has signed off (Level 1). <span class="status-badge authorised">Authorised</span> means Finance has also signed off (Level 2) and the request is ready for PO processing.
+      </div>
+
+      <div class="highlight">
+        <strong>Q: Finance is on holiday — who can authorise my request?</strong><br>
+        Finance can set up a delegate before they go (Admin → Delegation). The delegate gets temporary authorisation powers for a set date range. If no delegation is set up, the request will wait until Finance returns.
       </div>
 
       <div class="highlight">
@@ -1379,6 +1577,11 @@
       </div>
 
       <div class="highlight">
+        <strong>Q: Will large photo attachments use up all our storage?</strong><br>
+        No — the hub automatically compresses images before uploading. Photos from your phone (typically 5–10 MB) are resized and compressed to around 200–400 KB. PDFs, Word docs and spreadsheets are uploaded at their original size. You don't need to do anything — it happens automatically.
+      </div>
+
+      <div class="highlight">
         <strong>Q: I processed a purchase request but entered the wrong PO number.</strong><br>
         Open the request in the Purchase Requests tab, click <strong>Update Details</strong> (visible to Finance on Processed records), correct the PO number, and save. The status stays Processed.
       </div>
@@ -1395,7 +1598,7 @@
 
   <!-- footer -->
   <div style="border-top:1px solid var(--border);margin-top:48px;padding-top:20px;text-align:center;font-size:12px;color:var(--muted)">
-    <p>MGTS Request &amp; Expenses Hub &nbsp;·&nbsp; User Guide v2.0 &nbsp;·&nbsp; June 2026</p>
+    <p>MGTS Request &amp; Expenses Hub &nbsp;·&nbsp; User Guide v3.0 &nbsp;·&nbsp; June 2026</p>
     <p style="margin-top:4px">Midland Group Training Services &nbsp;·&nbsp; Built with Love · MGTS 2026</p>
   </div>
 
