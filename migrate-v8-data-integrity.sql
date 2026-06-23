@@ -100,19 +100,19 @@ ORDER BY e1.employee_name, e1.claim_month, e1.created_at;
 ALTER TABLE purchase_requests
   ADD CONSTRAINT pr_status_approval_sync CHECK (
     (status = 'Pending' AND authorised_by IS NULL) OR
-    (status IN ('Approved','Authorised','Rejected','Processed') AND (authorised_by IS NOT NULL OR status = 'Pending'))
+    (status IN ('Approved','Authorised','Rejected','Processed') AND authorised_by IS NOT NULL)
   );
 
 ALTER TABLE expense_claims
   ADD CONSTRAINT ec_status_approval_sync CHECK (
     (status = 'Pending' AND authorised_by IS NULL) OR
-    (status IN ('Approved','Authorised','Rejected','Processed') AND (authorised_by IS NOT NULL OR status = 'Pending'))
+    (status IN ('Approved','Authorised','Rejected','Processed') AND authorised_by IS NOT NULL)
   );
 
 ALTER TABLE mileage_claims
   ADD CONSTRAINT mi_status_approval_sync CHECK (
     (status = 'Pending' AND authorised_by IS NULL) OR
-    (status IN ('Approved','Authorised','Rejected','Processed') AND (authorised_by IS NOT NULL OR status = 'Pending'))
+    (status IN ('Approved','Authorised','Rejected','Processed') AND authorised_by IS NOT NULL)
   );
 
 
