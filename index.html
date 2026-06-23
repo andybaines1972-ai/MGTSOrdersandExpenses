@@ -405,6 +405,7 @@ textarea{resize:vertical;min-height:70px}
       <div class="admin-inner-nav">
         <button class="admin-inner-tab active" id="ait-users" onclick="showAdminTab('users')">Users</button>
         <button class="admin-inner-tab" id="ait-delegation" onclick="showAdminTab('delegation')">Delegation</button>
+        <button class="admin-inner-tab" id="ait-settings" onclick="showAdminTab('settings')">Rates &amp; Settings</button>
         <button class="admin-inner-tab" id="ait-audit" onclick="showAdminTab('audit')">Change Log</button>
         <button class="admin-inner-tab" id="ait-debug" onclick="showAdminTab('debug')">System Debug</button>
       </div>
@@ -482,6 +483,45 @@ textarea{resize:vertical;min-height:70px}
               <tr><td colspan="7"><div class="empty"><p>No delegations found.</p></div></td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ── RATES & SETTINGS PANEL ── -->
+      <div id="admin-settings-panel" style="display:none">
+        <div class="toolbar">
+          <h2>Mileage Rates &amp; Settings</h2>
+        </div>
+        <div style="background:var(--light);border:1px solid var(--mid);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+          <p style="font-size:13px;color:var(--grey);margin-bottom:16px">
+            Configure mileage rates and overnight stay allowances. Rates are applied when employees submit mileage claims.
+          </p>
+          <div class="form-grid" style="max-width:600px">
+            <div class="form-group">
+              <label>Car (up to 10,000 miles/year) - Pence per Mile</label>
+              <input type="number" id="rate-car-basic" min="0" step="0.1" placeholder="45">
+            </div>
+            <div class="form-group">
+              <label>Car (over 10,000 miles/year) - Pence per Mile</label>
+              <input type="number" id="rate-car-high" min="0" step="0.1" placeholder="25">
+            </div>
+            <div class="form-group">
+              <label>Motorcycle - Pence per Mile</label>
+              <input type="number" id="rate-bike" min="0" step="0.1" placeholder="24">
+            </div>
+            <div class="form-group">
+              <label>Bicycle - Pence per Mile</label>
+              <input type="number" id="rate-bicycle" min="0" step="0.1" placeholder="20">
+            </div>
+            <div class="form-group">
+              <label>Overnight Stay Allowance - £ per Night</label>
+              <input type="number" id="rate-overnight" min="0" step="0.50" placeholder="35">
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#666">
+            <p><strong>Last Updated:</strong> <span id="rates-updated">Never</span></p>
+            <p><strong>Updated By:</strong> <span id="rates-updatedby">—</span></p>
+          </div>
+          <button class="btn btn-primary" onclick="saveRatesSettings()" style="margin-top:12px">Save Settings</button>
         </div>
       </div>
 
@@ -920,18 +960,10 @@ textarea{resize:vertical;min-height:70px}
           <label>Vehicle Type *</label>
           <select id="mi-vtype" onchange="updateMIRate()">
             <option value="">— Select —</option>
-            <option value="0.55">Own Car (up to 10,000 miles) — £0.55/mile</option>
-            <option value="0.25">Own Car (over 10,000 miles) — £0.25/mile</option>
-            <option value="0.11">Company Car Diesel ≤1600cc — £0.11/mile</option>
-            <option value="0.13">Company Car Diesel 1601–2000cc — £0.13/mile</option>
-            <option value="0.17">Company Car Diesel &gt;2000cc — £0.17/mile</option>
-            <option value="0.12">Company Car Petrol ≤1400cc — £0.12/mile</option>
-            <option value="0.14">Company Car Petrol 1401–2000cc — £0.14/mile</option>
-            <option value="0.22">Company Car Petrol &gt;2000cc — £0.22/mile</option>
-            <option value="0.12">Company Car Hybrid ≤1400cc — £0.12/mile</option>
-            <option value="0.14">Company Car Hybrid 1401–2000cc — £0.14/mile</option>
-            <option value="0.22">Company Car Hybrid &gt;2000cc — £0.22/mile</option>
-            <option value="0.07">Company Car Fully Electric — £0.07/mile</option>
+            <option value="0.45">Own Car (up to 10,000 miles) — £0.45/mile (HMRC)</option>
+            <option value="0.25">Own Car (over 10,000 miles) — £0.25/mile (HMRC)</option>
+            <option value="0.24">Motorcycle — £0.24/mile (HMRC)</option>
+            <option value="0.20">Bicycle — £0.20/mile (HMRC)</option>
           </select>
         </div>
         <div class="form-group">
@@ -965,10 +997,16 @@ textarea{resize:vertical;min-height:70px}
       <table class="line-table">
         <thead><tr>
           <th>Date</th><th>From / To Postcode &amp; Description</th>
-          <th>Miles</th><th></th>
+          <th>Miles</th><th>Deduct<br>Commute</th><th></th>
         </tr></thead>
         <tbody id="mi-journeys-body"></tbody>
       </table>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;margin-top:10px;font-size:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label style="font-weight:600;color:#666">Journey Log Total:</label><span id="mi-journey-total" style="font-weight:600;color:#000">0.0</span> miles</div>
+          <div><label style="font-weight:600;color:#666">Commute Miles to Deduct:</label><span id="mi-commute-display" style="font-weight:600;color:#000">0.0</span> miles</div>
+        </div>
+      </div>
       <button class="btn btn-secondary add-line-btn" onclick="addMIJourney()">+ Add Journey</button>
 
       <div class="form-grid" style="margin-top:12px">
@@ -1326,11 +1364,52 @@ function renderDash(){
       </table></div>`;
     };
     if(fin){
+      const pendingItems = mkItems('Pending');
       const approvedItems = mkItems('Approved');
       const authorisedItems = mkItems('Authorised');
-      html = renderTable('Approved — Finance Authorisation Required', approvedItems)
+
+      // Group pending by manager to show finance which managers are holding items
+      const pendingByMgr = {};
+      ALL_PR.filter(r=>r.status==='Pending').forEach(r=>{
+        const mgr = r.authoriser_email||'Unassigned';
+        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
+        pendingByMgr[mgr].push({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total});
+      });
+      ALL_EX.filter(r=>r.status==='Pending').forEach(r=>{
+        const mgr = r.authoriser_email||'Unassigned';
+        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
+        pendingByMgr[mgr].push({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total});
+      });
+      ALL_MI.filter(r=>r.status==='Pending').forEach(r=>{
+        const mgr = r.authoriser_email||'Unassigned';
+        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
+        pendingByMgr[mgr].push({...r,type:'MI',label:'Mileage Claim',ref:r.ref_number,who:r.employee_name,amt:r.total_claim});
+      });
+
+      let pendingMgrHtml = '';
+      if(Object.keys(pendingByMgr).length > 0){
+        pendingMgrHtml = `<div class="toolbar"><h2>Pending Manager Approval — By Manager</h2></div>`;
+        for(const mgr in pendingByMgr){
+          const mgrUser = (ALL_USERS||[]).find(u=>u.email===mgr);
+          const mgrName = mgrUser?.name || (mgr==='Unassigned'?'Unassigned':mgr);
+          const mgrItems = pendingByMgr[mgr];
+          pendingMgrHtml += `<div class="toolbar"><h3 style="font-size:14px;margin:0">${esc(mgrName)} (${mgrItems.length})</h3></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Amount</th><th></th></tr></thead>
+            <tbody>${mgrItems.map(i=>`<tr>
+              <td><span class="ref">${i.ref}</span></td>
+              <td>${i.label}</td><td>${i.who||'—'}</td>
+              <td>${fmt(i.amt)}</td>
+              <td><button class="btn btn-sm btn-secondary" onclick="openByRef('${i.type}','${i.id}')">View</button></td>
+            </tr>`).join('')}</tbody>
+          </table></div>`;
+        }
+      }
+
+      html = pendingMgrHtml
+           + renderTable('Approved — Finance Authorisation Required', approvedItems)
            + renderTable('Authorised — PO Processing Required', authorisedItems);
-      if(!approvedItems.length && !authorisedItems.length)
+      if(!pendingItems.length && !approvedItems.length && !authorisedItems.length)
         html = `<div class="empty"><div class="icon">✅</div><p>All items are up to date — nothing needs your attention.</p></div>`;
     } else if(ACTIVE_DELEGATION){
       const approvedItems = mkItems('Approved');
@@ -1725,6 +1804,11 @@ async function openEXModal(id){
   }
 
   let btns = `<button class="btn btn-secondary" onclick="closeModal('ex-modal')">Close</button>`;
+  // Print/Export for approved/authorised/processed claims
+  if(['Approved','Authorised','Processed'].includes(r.status)){
+    btns += `<button class="btn btn-secondary" onclick="printExpenseClaim('${r.id}')">🖨 Print</button>`;
+    btns += `<button class="btn btn-secondary" onclick="exportExpenseClaimXLSX('${r.id}')">📊 Export XLSX</button>`;
+  }
   // Level 1: Manager approval (Pending → Approved)
   if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
@@ -1932,6 +2016,7 @@ async function openMIModal(id){
     trs[i].querySelector('.mi-jto').value    = j.to_postcode||'';
     trs[i].querySelector('.mi-jdesc').value  = j.description||'';
     trs[i].querySelector('.mi-jmiles').value = j.miles||0;
+    trs[i].querySelector('.mi-jcommute').checked = j.deduct_commute||false;
   });
   calcMITotals();
 
@@ -2004,6 +2089,7 @@ function addMIJourney(){
       <input class="mi-jdesc" type="text" placeholder="Description / Route">
     </td>
     <td><input class="mi-jmiles" type="number" value="0" min="0" step="0.1" style="width:70px" oninput="calcMITotals()"></td>
+    <td style="text-align:center"><input class="mi-jcommute" type="checkbox" oninput="calcMITotals()"></td>
     <td><button class="del-btn" onclick="this.closest('tr').remove();calcMITotals()">×</button></td>`;
   document.getElementById('mi-journeys-body').appendChild(tr);
 }
@@ -2048,6 +2134,22 @@ function calcMITotals(){
   const business = parseFloat(document.getElementById('mi-business').value)||0;
   const rate     = parseFloat(document.getElementById('mi-rate').value)||0;
   const nights   = parseInt(document.getElementById('mi-overnights').value)||0;
+  const commuteRate = parseFloat(document.getElementById('mi-commute').value)||0;
+
+  // Calculate journey log totals
+  let journeyTotal = 0;
+  let commuteToDeduct = 0;
+  document.querySelectorAll('#mi-journeys-body tr').forEach(tr=>{
+    const miles = parseFloat(tr.querySelector('.mi-jmiles')?.value)||0;
+    const deductCommute = tr.querySelector('.mi-jcommute')?.checked||false;
+    journeyTotal += miles;
+    if(deductCommute && commuteRate > 0) commuteToDeduct += Math.min(miles, commuteRate);
+  });
+
+  // Display journey totals
+  document.getElementById('mi-journey-total').textContent = journeyTotal.toFixed(1);
+  document.getElementById('mi-commute-display').textContent = commuteToDeduct.toFixed(1);
+
   const mileTot  = business * rate;
   const nightTot = nights * 35;
   const grand    = mileTot + nightTot;
@@ -2080,7 +2182,8 @@ async function saveMI(){
       date: tr.querySelector('.mi-jdate')?.value||'',
       description: desc, miles,
       from_postcode: tr.querySelector('.mi-jfrom')?.value.trim().toUpperCase()||'',
-      to_postcode:   tr.querySelector('.mi-jto')?.value.trim().toUpperCase()||''
+      to_postcode:   tr.querySelector('.mi-jto')?.value.trim().toUpperCase()||'',
+      deduct_commute: tr.querySelector('.mi-jcommute')?.checked||false
     });
   });
 
@@ -2276,11 +2379,12 @@ async function saveUser(){
 
 // ── ADMIN INNER TABS ──────────────────────────────────────
 function showAdminTab(tab){
-  ['users','delegation','audit','debug'].forEach(t=>{
+  ['users','delegation','settings','audit','debug'].forEach(t=>{
     document.getElementById('admin-'+t+'-panel').style.display = t===tab?'':'none';
     document.getElementById('ait-'+t)?.classList.toggle('active', t===tab);
   });
   if(tab==='delegation') loadDelegations();
+  if(tab==='settings') loadRatesSettings();
   if(tab==='audit') loadAuditLog();
   if(tab==='debug'){ runHealthCheck(); renderErrors(); }
 }
@@ -2771,6 +2875,75 @@ function canFinanceAuth(){
   return S.role==='finance' || ACTIVE_DELEGATION!==null;
 }
 
+// ── RATES & SETTINGS ─────────────────────────────────────
+let RATES_SETTINGS = {
+  car_basic: 45,
+  car_high: 25,
+  motorcycle: 24,
+  bicycle: 20,
+  overnight: 35
+};
+
+async function loadRatesSettings(){
+  try {
+    const {data} = await _db.from('system_settings').select('*').eq('setting_key','mileage_rates').single();
+    if(data && data.setting_value){
+      RATES_SETTINGS = JSON.parse(data.setting_value);
+    }
+  } catch(e){}
+
+  document.getElementById('rate-car-basic').value = RATES_SETTINGS.car_basic||45;
+  document.getElementById('rate-car-high').value = RATES_SETTINGS.car_high||25;
+  document.getElementById('rate-bike').value = RATES_SETTINGS.motorcycle||24;
+  document.getElementById('rate-bicycle').value = RATES_SETTINGS.bicycle||20;
+  document.getElementById('rate-overnight').value = RATES_SETTINGS.overnight||35;
+
+  // Show last update info
+  try {
+    const {data:logData} = await _db.from('audit_log')
+      .select('*')
+      .eq('action','settings_updated')
+      .order('created_at',{ascending:false})
+      .limit(1)
+      .single();
+    if(logData){
+      const date = new Date(logData.created_at);
+      document.getElementById('rates-updated').textContent = date.toLocaleDateString('en-GB')+' '+date.toLocaleTimeString('en-GB');
+      document.getElementById('rates-updatedby').textContent = logData.performed_by||'System';
+    }
+  } catch(e){}
+}
+
+async function saveRatesSettings(){
+  const newRates = {
+    car_basic: parseFloat(document.getElementById('rate-car-basic').value)||45,
+    car_high: parseFloat(document.getElementById('rate-car-high').value)||25,
+    motorcycle: parseFloat(document.getElementById('rate-bike').value)||24,
+    bicycle: parseFloat(document.getElementById('rate-bicycle').value)||20,
+    overnight: parseFloat(document.getElementById('rate-overnight').value)||35
+  };
+
+  try {
+    const {error} = await _db.from('system_settings').upsert({
+      setting_key: 'mileage_rates',
+      setting_value: JSON.stringify(newRates),
+      updated_at: new Date().toISOString()
+    }).eq('setting_key','mileage_rates');
+
+    if(error && error.code!=='PGRST116'){
+      toast('Error saving settings: '+error.message,'err');
+      return;
+    }
+
+    RATES_SETTINGS = newRates;
+    logAction('settings_updated','system_settings',null,null,{mileage_rates: newRates});
+    toast('Mileage rates updated successfully.');
+    await loadRatesSettings();
+  } catch(e){
+    toast('Error saving settings: '+e.message,'err');
+  }
+}
+
 // ── IMAGE COMPRESSION ────────────────────────────────────
 function compressImage(file, maxW=1920, maxH=1920, quality=0.75){
   return new Promise((resolve)=>{
@@ -3038,6 +3211,164 @@ function markRequired(ids){
     ['input','change'].forEach(ev=>el.addEventListener(ev,()=>el.classList.remove('req-err'),{once:true}));
   });
   return ok;
+}
+
+// ── EXPENSE CLAIM PRINT & EXPORT ────────────────────────
+function printExpenseClaim(id){
+  const r = ALL_EX.find(x=>x.id===id);
+  if(!r){ toast('Save the record first.','err'); return; }
+
+  const fmtD = s => {
+    if(!s) return '';
+    const d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString('en-GB');
+  };
+
+  const lines = (Array.isArray(r.items) ? r.items : JSON.parse(r.items||'[]')).map((l,i) => `
+    <tr>
+      <td>${fmtD(l.date)}</td>
+      <td>${l.description||''}</td>
+      <td style="text-align:right">${parseFloat(l.total_cost||0).toFixed(2)}</td>
+      <td>${l.vat_applicable==='Y'?'Yes':'No'}</td>
+      <td style="text-align:right">${parseFloat(l.ex_vat||0).toFixed(2)}</td>
+      <td style="text-align:right">${parseFloat(l.vat||0).toFixed(2)}</td>
+    </tr>`).join('');
+
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Expense Claim ${r.ref_number}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;background:#fff;padding:20px}
+  .wrap{max-width:850px;margin:0 auto}
+  .header{text-align:center;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px}
+  .header h1{font-size:18px;margin:0}
+  .header p{font-size:11px;color:#555;margin:4px 0}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;font-size:11px}
+  .meta-group{border:1px solid #ddd;padding:10px}
+  .meta-group label{font-weight:bold;display:block;margin-bottom:4px;color:#333}
+  .meta-group span{display:block;color:#555;line-height:1.5}
+  table{width:100%;border-collapse:collapse;margin:20px 0}
+  th{background:#f5f5f5;padding:8px;text-align:left;font-weight:bold;border-bottom:1px solid #000;font-size:11px}
+  td{padding:8px;border-bottom:1px solid #ddd;vertical-align:top}
+  .totals{text-align:right;margin-top:20px;font-size:12px}
+  .total-row{display:grid;grid-template-columns:200px 1fr;gap:10px;margin:6px 0;padding:4px 0}
+  .total-row.grand{font-weight:bold;border-top:2px solid #000;padding-top:8px;font-size:13px}
+  .notes{margin-top:20px;padding-top:20px;border-top:1px solid #ddd;font-size:11px}
+  .approval{margin-top:30px;padding-top:20px;border-top:1px dashed #ddd;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:11px}
+  .approval-box{text-align:center}
+  @media print{body{padding:0}a{color:#0000ff}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="header">
+    <h1>MGTS Expense Claim</h1>
+    <p>Reference: <strong>${r.ref_number}</strong></p>
+  </div>
+
+  <div class="meta">
+    <div class="meta-group">
+      <label>Claimant</label>
+      <span>${r.employee_name||'—'}</span>
+      <label style="margin-top:8px">Department</label>
+      <span>${r.department||'—'}</span>
+    </div>
+    <div class="meta-group">
+      <label>Claim Month</label>
+      <span>${r.claim_month||'—'}</span>
+      <label style="margin-top:8px">Status</label>
+      <span><strong>${r.status}</strong></span>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th style="width:15%">Date</th>
+      <th style="width:35%">Description</th>
+      <th style="width:12%;text-align:right">Cost</th>
+      <th style="width:10%">VAT</th>
+      <th style="width:14%;text-align:right">Ex VAT</th>
+      <th style="width:14%;text-align:right">VAT Amount</th>
+    </tr></thead>
+    <tbody>${lines}</tbody>
+  </table>
+
+  <div class="totals">
+    <div class="total-row"><span>Subtotal (excl VAT):</span><span>${parseFloat(r.total_ex_vat||0).toFixed(2)}</span></div>
+    <div class="total-row"><span>VAT (20%):</span><span>${parseFloat(r.total_vat||0).toFixed(2)}</span></div>
+    <div class="total-row grand"><span>Total Amount Due:</span><span>£${parseFloat(r.total||0).toFixed(2)}</span></div>
+  </div>
+
+  ${r.finance_notes ? `<div class="notes"><strong>Finance Notes:</strong><p>${r.finance_notes}</p></div>` : ''}
+
+  <div class="approval">
+    <div class="approval-box">
+      <p>Approved by:</p>
+      <p style="margin-top:20px;border-top:1px solid #000;padding-top:8px">${r.authorised_by||'—'}</p>
+      <p style="font-size:10px;color:#888">${r.authorised_date?`on ${fmtD(r.authorised_date)}`:'—'}</p>
+    </div>
+    <div class="approval-box">
+      <p>Finance Authorised by:</p>
+      <p style="margin-top:20px;border-top:1px solid #000;padding-top:8px">${r.finance_authorised_by||'—'}</p>
+      <p style="font-size:10px;color:#888">${r.finance_authorised_date?`on ${fmtD(r.finance_authorised_date)}`:'—'}</p>
+    </div>
+  </div>
+</div>
+<script>window.print();window.close();</script>
+</body></html>`);
+  w.document.close();
+}
+
+function exportExpenseClaimXLSX(id){
+  const r = ALL_EX.find(x=>x.id===id);
+  if(!r){ toast('Record not found.','err'); return; }
+
+  const fmtD = s => {
+    if(!s) return '';
+    const d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString('en-GB');
+  };
+
+  const lines = Array.isArray(r.items) ? r.items : JSON.parse(r.items||'[]');
+
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['MGTS Expense Claim Export'],
+    [],
+    ['Claim Reference:', r.ref_number],
+    ['Employee:', r.employee_name],
+    ['Department:', r.department],
+    ['Claim Month:', r.claim_month],
+    ['Status:', r.status],
+    ['Submitted:', fmtD(r.created_at)],
+    [],
+    ['Date', 'Description', 'Cost', 'VAT Applied', 'Cost ex VAT', 'VAT Amount', 'NL Code'],
+    ...lines.map(l => [
+      l.date||'',
+      l.description||'',
+      parseFloat(l.total_cost||0),
+      l.vat_applicable==='Y'?'Yes':'No',
+      parseFloat(l.ex_vat||0),
+      parseFloat(l.vat||0),
+      l.nl_code||''
+    ]),
+    [],
+    ['TOTALS'],
+    ['Subtotal (ex VAT):', parseFloat(r.total_ex_vat||0)],
+    ['VAT (20%):', parseFloat(r.total_vat||0)],
+    ['Total Amount Due:', parseFloat(r.total||0)],
+    [],
+    ['Approved By:', r.authorised_by||'Pending'],
+    ['Approved Date:', fmtD(r.authorised_date)],
+    ['Finance Authorised By:', r.finance_authorised_by||'Pending'],
+    ['Finance Authorised Date:', fmtD(r.finance_authorised_date)]
+  ]);
+
+  ws['!cols'] = [{wch:12},{wch:30},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Expense Claim');
+  XLSX.writeFile(wb, `Expense_Claim_${r.ref_number}.xlsx`);
 }
 
 // ── CSV EXPORT ────────────────────────────────────────────
