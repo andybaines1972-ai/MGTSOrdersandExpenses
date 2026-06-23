@@ -8,12 +8,37 @@
 
 ## Overview
 
-Two data integrity issues have been identified and require manual cleanup before deploying to production:
+Three data integrity issues have been identified and require cleanup:
 
+0. **CRITICAL:** Database CHECK constraint missing 'Approved' status — causes `expense_claims_status_check` errors
 1. **Issue #2:** Duplicate expense claims appearing as pending
 2. **Issue #4:** Expense claims showing "approved by Manager" but status still "Pending"
 
 This guide provides step-by-step instructions to identify and fix these issues.
+
+---
+
+## ⚠️ STEP 0: Fix Status CHECK Constraint (MUST RUN FIRST)
+
+**Problem:** The original tables only allow `Pending, Authorised, Rejected, Processed` — but the two-level auth system uses `Approved` as an intermediate status. This is the root cause of Janet's `"violates check constraint"` error.
+
+**Fix:** Run this in Supabase SQL Editor → New Query:
+
+```sql
+ALTER TABLE purchase_requests DROP CONSTRAINT IF EXISTS purchase_requests_status_check;
+ALTER TABLE purchase_requests ADD CONSTRAINT purchase_requests_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+
+ALTER TABLE expense_claims DROP CONSTRAINT IF EXISTS expense_claims_status_check;
+ALTER TABLE expense_claims ADD CONSTRAINT expense_claims_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+
+ALTER TABLE mileage_claims DROP CONSTRAINT IF EXISTS mileage_claims_status_check;
+ALTER TABLE mileage_claims ADD CONSTRAINT mileage_claims_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+```
+
+**Expected:** "Query OK" — no errors. This unlocks all downstream fixes.
 
 ---
 

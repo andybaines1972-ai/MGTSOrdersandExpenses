@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS purchase_requests (
   total               numeric(10,2) NOT NULL DEFAULT 0,
   reason              text,
   status              text        NOT NULL DEFAULT 'Pending'
-                      CHECK (status IN ('Pending','Authorised','Rejected','Processed')),
+                      CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed')),
   authorised_by       text,
   authorised_date     date,
   authoriser_notes    text,
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS expense_claims (
   total_vat       numeric(10,2) NOT NULL DEFAULT 0,
   total_ex_vat    numeric(10,2) NOT NULL DEFAULT 0,
   status          text        NOT NULL DEFAULT 'Pending'
-                  CHECK (status IN ('Pending','Authorised','Rejected','Processed')),
+                  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed')),
   authorised_by   text,
   authorised_date date,
   authoriser_notes text,
@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS mileage_claims (
   mileage_total         numeric(8,2) NOT NULL DEFAULT 0,
   total_claim           numeric(8,2) NOT NULL DEFAULT 0,
   status                text        NOT NULL DEFAULT 'Pending'
-                        CHECK (status IN ('Pending','Authorised','Rejected','Processed')),
+                        CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed')),
   authorised_by         text,
   authorised_date       date,
   authoriser_notes      text,

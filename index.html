@@ -2928,9 +2928,9 @@ async function saveRatesSettings(){
       setting_key: 'mileage_rates',
       setting_value: JSON.stringify(newRates),
       updated_at: new Date().toISOString()
-    }).eq('setting_key','mileage_rates');
+    }, { onConflict: 'setting_key' });
 
-    if(error && error.code!=='PGRST116'){
+    if(error){
       toast('Error saving settings: '+error.message,'err');
       return;
     }

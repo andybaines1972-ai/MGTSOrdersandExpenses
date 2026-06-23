@@ -1,16 +1,83 @@
-# SQL Execution Guide - CORRECTED
+# SQL Execution Guide - v2 CORRECTED
 
-**Issue:** Previous migration file had queries that could be run incomplete  
-**Solution:** Break into separate, complete, standalone queries  
+**Issue:** Original tables don't allow 'Approved' status — constraint must be fixed FIRST  
+**Solution:** Step 0 fixes the constraint, then remaining steps clean data  
 **Status:** ✅ SAFE TO EXECUTE
+
+---
+
+## ⚠️ CRITICAL: RUN STEP 0 FIRST
+
+The original database only allows status values: `Pending, Authorised, Rejected, Processed`.  
+The two-level auth system added `Approved` as an intermediate status but **never updated the constraint**.  
+This causes: `"violates check constraint expense_claims_status_check"` errors.
+
+**Step 0 MUST run before anything else.**
 
 ---
 
 ## EXECUTION STEPS (Run Each Separately)
 
+### STEP 0: FIX STATUS CONSTRAINT (CRITICAL — RUN FIRST)
+
+**Create NEW Query in Supabase SQL Editor and run:**
+
+```sql
+-- Purchase Requests
+ALTER TABLE purchase_requests DROP CONSTRAINT IF EXISTS purchase_requests_status_check;
+ALTER TABLE purchase_requests ADD CONSTRAINT purchase_requests_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+
+-- Expense Claims
+ALTER TABLE expense_claims DROP CONSTRAINT IF EXISTS expense_claims_status_check;
+ALTER TABLE expense_claims ADD CONSTRAINT expense_claims_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+
+-- Mileage Claims
+ALTER TABLE mileage_claims DROP CONSTRAINT IF EXISTS mileage_claims_status_check;
+ALTER TABLE mileage_claims ADD CONSTRAINT mileage_claims_status_check
+  CHECK (status IN ('Pending','Approved','Authorised','Rejected','Processed'));
+```
+
+**Expected:** "Query OK" or "0 rows" — no errors  
+**This fixes:** The `expense_claims_status_check` violation error Janet was seeing
+
+---
+
+### STEP 0B: CREATE SYSTEM_SETTINGS TABLE (For Rates & Settings)
+
+**Create NEW Query and run:**
+
+```sql
+CREATE TABLE IF NOT EXISTS system_settings (
+  setting_key   text PRIMARY KEY,
+  setting_value text NOT NULL DEFAULT '{}',
+  updated_at    timestamptz DEFAULT NOW()
+);
+
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read settings"
+ON system_settings FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Finance can manage settings"
+ON system_settings FOR ALL TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM user_roles WHERE email = auth.jwt()->>'email' AND role = 'finance')
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM user_roles WHERE email = auth.jwt()->>'email' AND role = 'finance')
+);
+```
+
+**Expected:** "Query OK" — table created  
+**This enables:** The Admin > Rates & Settings panel
+
+---
+
 ### STEP 1: PRE-AUDIT (See What Needs Fixing)
 
-**Run this FIRST in Supabase SQL Editor → New Query**
+**Run this in Supabase SQL Editor → New Query**
 
 ```sql
 SELECT

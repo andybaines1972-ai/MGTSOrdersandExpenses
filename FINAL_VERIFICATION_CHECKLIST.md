@@ -1,7 +1,7 @@
 # FINAL VERIFICATION CHECKLIST
 
 **Date:** 23 June 2026  
-**Build:** 5e845c3  
+**Build:** v9 (latest)  
 **Status:** ✅ COMPLETE & VERIFIED
 
 ---
@@ -10,7 +10,7 @@
 
 **All work completed, tested, verified, and committed to GitHub.**
 
-This document certifies that all requested features have been implemented and are ready for production deployment.
+**CRITICAL FIX (v9):** Database CHECK constraints updated to include 'Approved' status — this was the root cause of Janet's `expense_claims_status_check` violation error. Also fixed: Supabase upsert syntax for Rates settings, added `system_settings` table creation.
 
 ---
 
