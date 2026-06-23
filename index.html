@@ -1392,6 +1392,12 @@ async function openPRModal(id){
   document.getElementById('pr-pending-files').innerHTML = '';
   document.getElementById('pr-attach-list').innerHTML = '';
 
+  // Reset editable state (clears stale readonly/disabled from previous modal views)
+  document.querySelectorAll('#pr-modal input:not([type=hidden]),#pr-modal select,#pr-modal textarea').forEach(el=>{
+    el.readOnly = false; if(el.tagName==='SELECT') el.disabled = false;
+  });
+  document.getElementById('pr-site').readOnly = true;
+
   if(!id){
     // new
     document.getElementById('pr-modal-title').innerHTML = 'New Purchase Request <span id="pr-modal-ref"></span>';
