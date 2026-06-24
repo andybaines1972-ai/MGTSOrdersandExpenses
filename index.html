@@ -1368,45 +1368,29 @@ function renderDash(){
       const approvedItems = mkItems('Approved');
       const authorisedItems = mkItems('Authorised');
 
-      // Group pending by manager to show finance which managers are holding items
-      const pendingByMgr = {};
-      ALL_PR.filter(r=>r.status==='Pending').forEach(r=>{
-        const mgr = r.authoriser_email||'Unassigned';
-        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
-        pendingByMgr[mgr].push({...r,type:'PR',label:'Purchase Request',ref:r.ref_number,who:r.requested_by,amt:r.total});
-      });
-      ALL_EX.filter(r=>r.status==='Pending').forEach(r=>{
-        const mgr = r.authoriser_email||'Unassigned';
-        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
-        pendingByMgr[mgr].push({...r,type:'EX',label:'Expense Claim',ref:r.ref_number,who:r.employee_name,amt:r.total});
-      });
-      ALL_MI.filter(r=>r.status==='Pending').forEach(r=>{
-        const mgr = r.authoriser_email||'Unassigned';
-        if(!pendingByMgr[mgr]) pendingByMgr[mgr] = [];
-        pendingByMgr[mgr].push({...r,type:'MI',label:'Mileage Claim',ref:r.ref_number,who:r.employee_name,amt:r.total_claim});
-      });
+      // Add manager name to pending items for single-table display
+      const pendingWithMgr = pendingItems.map(i=>{
+        const mgrEmail = i.authoriser_email||'Unassigned';
+        const mgrUser = (ALL_USERS||[]).find(u=>u.email===mgrEmail);
+        return {...i, mgrName: mgrUser?.name || (mgrEmail==='Unassigned'?'Unassigned':mgrEmail)};
+      }).sort((a,b)=>a.mgrName.localeCompare(b.mgrName));
 
-      let pendingMgrHtml = '';
-      if(Object.keys(pendingByMgr).length > 0){
-        pendingMgrHtml = `<div class="toolbar"><h2>Pending Manager Approval — By Manager</h2></div>`;
-        for(const mgr in pendingByMgr){
-          const mgrUser = (ALL_USERS||[]).find(u=>u.email===mgr);
-          const mgrName = mgrUser?.name || (mgr==='Unassigned'?'Unassigned':mgr);
-          const mgrItems = pendingByMgr[mgr];
-          pendingMgrHtml += `<div class="toolbar"><h3 style="font-size:14px;margin:0">${esc(mgrName)} (${mgrItems.length})</h3></div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Amount</th><th></th></tr></thead>
-            <tbody>${mgrItems.map(i=>`<tr>
-              <td><span class="ref">${i.ref}</span></td>
-              <td>${i.label}</td><td>${i.who||'—'}</td>
-              <td>${fmt(i.amt)}</td>
-              <td><button class="btn btn-sm btn-secondary" onclick="openByRef('${i.type}','${i.id}')">View</button></td>
-            </tr>`).join('')}</tbody>
-          </table></div>`;
-        }
+      let pendingHtml = '';
+      if(pendingWithMgr.length){
+        pendingHtml = `<div class="toolbar"><h2>Pending Manager Approval (${pendingWithMgr.length})</h2></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Manager</th><th>Amount</th><th></th></tr></thead>
+          <tbody>${pendingWithMgr.map(i=>`<tr>
+            <td><span class="ref">${i.ref}</span></td>
+            <td>${i.label}</td><td>${i.who||'—'}</td>
+            <td>${esc(i.mgrName)}</td>
+            <td>${fmt(i.amt)}</td>
+            <td><button class="btn btn-sm btn-secondary" onclick="openByRef('${i.type}','${i.id}')">View</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
       }
 
-      html = pendingMgrHtml
+      html = pendingHtml
            + renderTable('Approved — Finance Authorisation Required', approvedItems)
            + renderTable('Authorised — PO Processing Required', authorisedItems);
       if(!pendingItems.length && !approvedItems.length && !authorisedItems.length)
