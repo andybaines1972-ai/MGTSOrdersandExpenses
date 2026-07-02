@@ -5,7 +5,7 @@
     "api/next-ref.js":      { "memory": 128, "maxDuration": 10 },
     "api/admin-delete.js":  { "memory": 128, "maxDuration": 10 },
     "api/update-user.js":   { "memory": 128, "maxDuration": 10 }
-    api/moodle-proxy.js": { "memory": 128, "maxDuration": 10 }
+    "api/moodle-proxy.js": { "memory": 128, "maxDuration": 10 }
   },
   "headers": [
     {
