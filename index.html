@@ -3032,6 +3032,8 @@ function printPO(){
     : '';
 
   const w = window.open('','_blank','width=940,height=780');
+  if(!w){ toast('Popup blocked — allow popups for this site to print the PO.','err'); return; }
+  try{
   w.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
@@ -3106,7 +3108,7 @@ function printPO(){
         </div>
         <div>
           <div class="logo-name">mgts</div>
-          <div class="logo-sub">business and training services ltd</div>
+          <div class="logo-sub">midland group training services ltd</div>
         </div>
       </div>
       <div class="po-title">PURCHASE ORDER</div>
@@ -3181,6 +3183,11 @@ function printPO(){
 
 </div></body></html>`);
   w.document.close();
+  }catch(err){
+    console.error('printPO failed:', err);
+    try{ w.close(); }catch(e){}
+    toast('Print failed: '+(err?.message||err),'err');
+  }
 }
 
 // ── REQUIRED FIELD VALIDATION ────────────────────────────
