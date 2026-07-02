@@ -30,13 +30,21 @@ module.exports = async (req, res) => {
   const { data: { user }, error: authErr } = await anon.auth.getUser();
   if (authErr || !user) return res.status(401).json({ error: 'Not authenticated' });
 
-  // Count all records in the table (bypasses RLS via admin client)
-  const { count, error } = await admin
+  // Find the highest existing ref number (bypasses RLS via admin client).
+  // Must be max-based, not count-based: deleting a record lowers the count
+  // and a count+1 ref would collide with an existing one.
+  const { data, error } = await admin
     .from(TABLE[prefix])
-    .select('*', { count: 'exact', head: true });
+    .select('ref_number')
+    .like('ref_number', prefix + '%');
 
   if (error) return res.status(500).json({ error: error.message });
 
-  const ref = prefix + String((count || 0) + 1).padStart(4, '0');
+  const maxNum = (data || []).reduce((max, row) => {
+    const n = parseInt(String(row.ref_number || '').slice(prefix.length), 10);
+    return isNaN(n) ? max : Math.max(max, n);
+  }, 0);
+
+  const ref = prefix + String(maxNum + 1).padStart(4, '0');
   return res.status(200).json({ ref });
 };

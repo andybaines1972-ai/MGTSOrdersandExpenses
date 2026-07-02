@@ -2593,7 +2593,7 @@ async function runWalkthrough(){
     const {data:{session}} = await _db.auth.getSession();
     const r = await fetch('/api/send-email',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},
       body: JSON.stringify({to:'test@test.invalid',subject:'[Test]',html:'<p>Test</p>',_dryRun:true})
     });
     const j = await r.json();
@@ -2963,9 +2963,10 @@ async function compressFiles(files){
 // ── EMAIL ─────────────────────────────────────────────────
 async function sendEmail(subject, ref, name, amount, type, to=FINANCE_EMAIL){
   try {
+    const {data:{session}} = await _db.auth.getSession();
     await fetch('/api/send-email', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},
       body: JSON.stringify({
         to,
         subject: `[MGTS Hub] ${subject} — ${ref}`,
