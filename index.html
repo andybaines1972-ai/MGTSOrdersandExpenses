@@ -2988,6 +2988,7 @@ function printPO(){
   const r  = ALL_PR.find(x=>x.id===id);
   if(!r){ toast('Save the record first.','err'); return; }
 
+  try{
   const fmtD = s => {
     if(!s) return '';
     const d = new Date(s);
@@ -3032,10 +3033,7 @@ function printPO(){
     ? `<div class="ref-cell"><span class="ref-lbl">Website / Link</span><a href="${r.supplier_link}" style="color:#1d4ed8;font-size:9px;word-break:break-all">${r.supplier_link}</a></div>`
     : '';
 
-  const w = window.open('','_blank','width=940,height=780');
-  if(!w){ toast('Popup blocked — allow popups for this site to print the PO.','err'); return; }
-  try{
-  w.document.write(`<!DOCTYPE html>
+  const poHTML = `<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
 <title>Purchase Order ${poNum}</title>
@@ -3182,11 +3180,41 @@ function printPO(){
 
   <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
 
-</div></body></html>`);
-  w.document.close();
+</div></body></html>`;
+
+  // Render into a same-page overlay + iframe instead of a pop-up window.
+  // Managed browsers (MGTS Edge) frequently block window.open pop-ups, which
+  // is why the PO "wouldn't show". Printing the iframe prints only the PO
+  // (its own isolated document), so Print / Save as PDF works with pop-ups off.
+  const existing = document.getElementById('po-print-overlay');
+  if(existing) existing.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'po-print-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.62);display:flex;flex-direction:column';
+  ov.innerHTML = `
+    <div style="background:#231f20;color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;flex-shrink:0">
+      <span style="margin-right:auto;font-weight:700;font-size:14px">Purchase Order ${esc(poNum)}</span>
+      <button id="po-print-btn" class="btn btn-primary" style="width:auto">🖨 Print / Save as PDF</button>
+      <button id="po-close-btn" class="btn btn-secondary" style="width:auto">✕ Close</button>
+    </div>
+    <iframe id="po-print-frame" style="flex:1;width:100%;border:0;background:#fff" title="Purchase Order preview"></iframe>`;
+  document.body.appendChild(ov);
+
+  const frame = document.getElementById('po-print-frame');
+  const fdoc = frame.contentWindow.document;
+  fdoc.open(); fdoc.write(poHTML); fdoc.close();
+
+  const closeOverlay = ()=>{ ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e=>{ if(e.key==='Escape') closeOverlay(); };
+  document.getElementById('po-print-btn').addEventListener('click', ()=>{
+    try{ frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch(e){ toast('Print failed: '+(e?.message||e),'err'); }
+  });
+  document.getElementById('po-close-btn').addEventListener('click', closeOverlay);
+  document.addEventListener('keydown', onKey);
   }catch(err){
     console.error('printPO failed:', err);
-    try{ w.close(); }catch(e){}
     toast('Print failed: '+(err?.message||err),'err');
   }
 }
