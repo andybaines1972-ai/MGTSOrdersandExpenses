@@ -768,6 +768,16 @@ textarea{resize:vertical;min-height:70px}
         <div class="divider">Line Items</div>
       </div>
 
+      <!-- Saved baskets: reuse a previous set of line items + supplier -->
+      <div id="pr-basket-bar" style="display:flex;gap:8px;align-items:center;margin:0 0 10px;flex-wrap:wrap">
+        <select id="pr-basket-select" style="max-width:300px;flex:1;min-width:180px" onchange="onBasketSelect()">
+          <option value="">— Load a saved basket… —</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="loadBasket()">📥 Load</button>
+        <button class="btn btn-danger btn-sm" type="button" id="pr-basket-del" style="display:none" onclick="deleteBasket()">🗑 Delete</button>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="saveBasket()" style="margin-left:auto">💾 Save as basket</button>
+      </div>
+
       <table class="line-table" id="pr-lines-table">
         <thead><tr>
           <th style="width:40%">Description</th>
@@ -1269,7 +1279,7 @@ _db.auth.getSession().then(({ data: { session } })=>{
 });
 
 // ── DATA ──────────────────────────────────────────────────
-let ALL_PR=[], ALL_EX=[], ALL_MI=[], ALL_USERS=[];
+let ALL_PR=[], ALL_EX=[], ALL_MI=[], ALL_USERS=[], ALL_BASKETS=[];
 
 async function refreshAll(){
   await Promise.all([loadPR(), loadEX(), loadMI(), loadUsers()]);
@@ -1497,6 +1507,7 @@ async function openPRModal(id){
   document.getElementById('pr-auth-note-group').style.display = 'none';
   document.getElementById('pr-fin-auth-note-group').style.display = 'none';
   document.getElementById('pr-goods-group').style.display = 'none';
+  document.getElementById('pr-basket-bar').style.display = 'none';
   document.getElementById('pr-delivery').value = 0;
   calcPRTotals();
   STAGED.pr = [];
@@ -1526,6 +1537,8 @@ async function openPRModal(id){
     document.getElementById('pr-reason').value = '';
     populateAuthorisers('pr-authoriser');
     addPRLine();
+    document.getElementById('pr-basket-bar').style.display = 'flex';   // baskets only when building a new request
+    loadBaskets();
     footer.innerHTML = `
       <button class="btn btn-secondary" onclick="closeModal('pr-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="savePR()">Submit Request</button>`;
@@ -1784,6 +1797,98 @@ async function deletePR(id){
   logAction('deleted','purchase_request',id,r?.ref_number,{});
   toast('Request deleted.'); closeModal('pr-modal');
   await loadPR(); renderPR(); renderDash(); updateBadges();
+}
+
+// ── SAVED BASKETS (reusable line-item / supplier templates) ──────────
+async function loadBaskets(){
+  try {
+    // RLS returns the current user's own baskets plus any shared ones
+    const { data, error } = await _db.from('order_baskets').select('*').order('name');
+    ALL_BASKETS = error ? [] : (data||[]);
+  } catch(e){ ALL_BASKETS = []; }
+  populateBasketSelect();
+}
+
+function populateBasketSelect(){
+  const sel = document.getElementById('pr-basket-select');
+  if(!sel) return;
+  const me     = S.user?.email;
+  const mine   = ALL_BASKETS.filter(b=>b.owner_email===me);
+  const shared = ALL_BASKETS.filter(b=>b.owner_email!==me && b.scope==='shared');
+  const opt = b=>`<option value="${b.id}">${esc(b.name)}${b.scope==='shared'?' (shared)':''}</option>`;
+  let html = '<option value="">— Load a saved basket… —</option>';
+  if(mine.length)   html += `<optgroup label="My baskets">${mine.map(opt).join('')}</optgroup>`;
+  if(shared.length) html += `<optgroup label="Shared baskets">${shared.map(opt).join('')}</optgroup>`;
+  sel.innerHTML = html;
+  document.getElementById('pr-basket-del').style.display = 'none';
+}
+
+function onBasketSelect(){
+  const b = ALL_BASKETS.find(x=>x.id===document.getElementById('pr-basket-select').value);
+  document.getElementById('pr-basket-del').style.display = (b && b.owner_email===S.user?.email) ? '' : 'none';
+}
+
+async function saveBasket(){
+  const items = [];
+  document.querySelectorAll('#pr-lines-body tr').forEach(tr=>{
+    const description = tr.querySelector('.pr-desc')?.value.trim()||'';
+    const qty  = parseFloat(tr.querySelector('.pr-qty')?.value)||1;
+    const unit_price = parseFloat(tr.querySelector('.pr-unit')?.value)||0;
+    if(description) items.push({description, qty, unit_price});
+  });
+  if(!items.length){ toast('Add at least one line item before saving a basket.','err'); return; }
+  const name = (prompt('Name this basket (e.g. "Technical Centre consumables"):')||'').trim();
+  if(!name) return;
+  const shared = confirm('Save as a SHARED basket everyone can use?\n\nOK = Shared (all users)\nCancel = Private (just you)');
+  const row = {
+    owner_email: S.user.email, name, scope: shared?'shared':'private', items,
+    supplier:         document.getElementById('pr-supplier').value.trim(),
+    supplier_tel:     document.getElementById('pr-supplier-tel').value.trim(),
+    supplier_email:   document.getElementById('pr-supplier-email').value.trim(),
+    supplier_ref:     document.getElementById('pr-supplier-ref').value.trim(),
+    supplier_link:    document.getElementById('pr-supplier-link').value.trim(),
+    supplier_address: document.getElementById('pr-supplier-address').value.trim()
+  };
+  const { error } = await _db.from('order_baskets').insert(row);
+  if(error){ toast(error.message,'err'); return; }
+  toast(`Basket "${name}" saved${shared?' (shared)':''}.`);
+  await loadBaskets();
+}
+
+function loadBasket(){
+  const b = ALL_BASKETS.find(x=>x.id===document.getElementById('pr-basket-select').value);
+  if(!b){ toast('Pick a basket to load first.','err'); return; }
+  const hasContent = [...document.querySelectorAll('#pr-lines-body .pr-desc')].some(i=>i.value.trim());
+  if(hasContent && !confirm('Replace the current line items with this basket?')) return;
+  const items = Array.isArray(b.items) ? b.items : JSON.parse(b.items||'[]');
+  document.getElementById('pr-lines-body').innerHTML = '';
+  items.forEach(()=>addPRLine());
+  const trs = document.getElementById('pr-lines-body').querySelectorAll('tr');
+  items.forEach((it,i)=>{
+    if(!trs[i]) return;
+    trs[i].querySelector('.pr-desc').value = it.description||'';
+    trs[i].querySelector('.pr-qty').value  = it.qty||1;
+    trs[i].querySelector('.pr-unit').value = it.unit_price||0;
+  });
+  if(!items.length) addPRLine();
+  // Supplier details — fill from the basket where present
+  const setIf = (id,val)=>{ if(val){ const el=document.getElementById(id); if(el) el.value=val; } };
+  setIf('pr-supplier', b.supplier);            setIf('pr-supplier-tel', b.supplier_tel);
+  setIf('pr-supplier-email', b.supplier_email); setIf('pr-supplier-ref', b.supplier_ref);
+  setIf('pr-supplier-link', b.supplier_link);   setIf('pr-supplier-address', b.supplier_address);
+  calcPRTotals();
+  toast(`Loaded "${b.name}".`);
+}
+
+async function deleteBasket(){
+  const b = ALL_BASKETS.find(x=>x.id===document.getElementById('pr-basket-select').value);
+  if(!b) return;
+  if(b.owner_email!==S.user?.email){ toast('You can only delete your own baskets.','err'); return; }
+  if(!confirm(`Delete basket "${b.name}"?`)) return;
+  const { error } = await _db.from('order_baskets').delete().eq('id',b.id);
+  if(error){ toast(error.message,'err'); return; }
+  toast('Basket deleted.');
+  await loadBaskets();
 }
 
 // ── EXPENSE CLAIMS ────────────────────────────────────────
