@@ -1110,7 +1110,8 @@ textarea{resize:vertical;min-height:70px}
           <select id="um-role">
             <option value="requestor">Requestor</option>
             <option value="authoriser">Authoriser</option>
-            <option value="finance">Finance</option>
+            <option value="finance_approval">Finance Approval (Ruth)</option>
+            <option value="finance">Finance (Processing Team)</option>
           </select>
         </div>
         <div class="form-group">
@@ -1206,7 +1207,7 @@ function populateAuthorisers(selId, val=''){
   if(!sel) return;
   // Finance users can also authorise; exclude the current logged-in user
   let auths = (ALL_USERS||[]).filter(u=>
-    (u.role==='authoriser'||u.role==='finance') && u.is_active && u.email!==S.user?.email
+    (u.role==='authoriser'||u.role==='finance'||u.role==='finance_approval') && u.is_active && u.email!==S.user?.email
   );
   // CEO rule: David Bridgens' requests route to Ruth Smith only
   if(S.name==='David Bridgens') auths = auths.filter(u=>u.name==='Ruth Smith');
@@ -1249,7 +1250,7 @@ async function initApp(user){
   document.getElementById('pr-new-btn').style.display  = '';
   document.getElementById('ex-new-btn').style.display  = '';
   document.getElementById('mi-new-btn').style.display  = '';
-  document.getElementById('tab-admin').style.display   = S.role==='finance'?'':'none';
+  document.getElementById('tab-admin').style.display   = (S.role==='finance'||S.role==='finance_approval')?'':'none';
 
   document.getElementById('login-view').style.display='none';
   document.getElementById('app-view').style.display='block';
@@ -1357,7 +1358,8 @@ function updateBadges(){
 
 // ── DASHBOARD ─────────────────────────────────────────────
 function renderDash(){
-  const fin     = S.role==='finance';
+  const isApprover  = S.role==='finance_approval';   // Ruth — Finance Approval (authorises)
+  const isProcessor = canFinanceProcess();            // finance team (+ Ruth) — process POs
   const prPend  = ALL_PR.filter(r=>r.status==='Pending').length;
   const exPend  = ALL_EX.filter(r=>r.status==='Pending').length;
   const miPend  = ALL_MI.filter(r=>r.status==='Pending').length;
@@ -1375,9 +1377,9 @@ function renderDash(){
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card stat-link" onclick="goTo('purchase','pr-filter','Pending')">
       <h3>${totalPend}</h3><p>Pending Manager Approval</p></div>
-    <div class="stat-card stat-link${fin&&allAppr>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Approved')">
+    <div class="stat-card stat-link${isApprover&&allAppr>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Approved')">
       <h3>${allAppr}</h3><p>Awaiting Finance Auth</p></div>
-    <div class="stat-card stat-link${fin&&allAuth>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Authorised')">
+    <div class="stat-card stat-link${isProcessor&&allAuth>0?' stat-urgent':''}" onclick="goTo('purchase','pr-filter','Authorised')">
       <h3>${allAuth}</h3><p>Awaiting PO Processing</p></div>
     <div class="stat-card stat-link" onclick="goTo('purchase','pr-filter','Pending')">
       <h3>${prPend}</h3><p>Purchase Requests Pending</p></div>
@@ -1407,7 +1409,8 @@ function renderDash(){
         </tr>`).join('')}</tbody>
       </table></div>`;
     };
-    if(fin){
+    if(isApprover){
+      // Ruth — full finance view: pending (by manager), awaiting her authorisation, and awaiting processing
       const pendingItems = mkItems('Pending');
       const approvedItems = mkItems('Approved');
       const authorisedItems = mkItems('Authorised');
@@ -1439,13 +1442,13 @@ function renderDash(){
            + renderTable('Authorised — PO Processing Required', authorisedItems);
       if(!pendingItems.length && !approvedItems.length && !authorisedItems.length)
         html = `<div class="empty"><div class="icon">✅</div><p>All items are up to date — nothing needs your attention.</p></div>`;
-    } else if(ACTIVE_DELEGATION){
-      const approvedItems = mkItems('Approved');
-      const pendingItems  = mkItems('Pending');
-      html = renderTable('Approved — Finance Authorisation (Delegated to You)', approvedItems)
-           + renderTable('Pending Items — Manager Approval Required', pendingItems);
-      if(!approvedItems.length && !pendingItems.length)
-        html = `<div class="empty"><div class="icon">✅</div><p>No items need your attention.</p></div>`;
+    } else if(S.role==='finance' || ACTIVE_DELEGATION){
+      // Finance team (processing) and/or a delegate covering Ruth's authorisation
+      let sec = '';
+      if(ACTIVE_DELEGATION) sec += renderTable('Approved — Finance Authorisation (Delegated to You)', mkItems('Approved'));
+      if(canFinanceProcess()) sec += renderTable('Authorised — PO Processing Required', mkItems('Authorised'));
+      if(ACTIVE_DELEGATION) sec += renderTable('Pending Items — Manager Approval Required', mkItems('Pending'));
+      html = sec || `<div class="empty"><div class="icon">✅</div><p>Nothing needs your attention right now.</p></div>`;
     } else {
       const pendingItems = mkItems('Pending');
       html = renderTable('Pending Items — Action Required', pendingItems);
@@ -1569,7 +1572,7 @@ async function openPRModal(id){
   });
 
   // finance panel
-  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+  if(canFinanceProcess() && (r.status==='Authorised'||r.status==='Processed')){
     document.getElementById('pr-finance-panel').style.display = '';
     document.getElementById('pr-finance-company').value = r.company||'';
     document.getElementById('pr-po').value      = r.po_number||'';
@@ -1599,7 +1602,7 @@ async function openPRModal(id){
   }
 
   // Manager approval notes — editable for authoriser/finance on Pending; read-only once decided
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending'){
     document.getElementById('pr-auth-note-group').style.display = '';
     document.getElementById('pr-auth-notes').readOnly = false;
   } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
@@ -1625,7 +1628,7 @@ async function openPRModal(id){
   // footer buttons
   let btns = `<button class="btn btn-secondary" onclick="closeModal('pr-modal')">Close</button>`;
   // Level 1: Manager approval (Pending → Approved)
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.requested_by_email!==S.user.email){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending' && r.requested_by_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Approved')">Approve</button>`;
   }
@@ -1634,10 +1637,10 @@ async function openPRModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('PR','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('PR','${r.id}','Authorised')">Authorise</button>`;
   }
-  if(S.role==='finance' && r.status==='Authorised'){
+  if(canFinanceProcess() && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="savePRFinance('${r.id}',true)">Save & Process</button>`;
   }
-  if(S.role==='finance' && r.status==='Processed'){
+  if(canFinanceProcess() && r.status==='Processed'){
     btns += `<button class="btn btn-secondary" onclick="savePRFinance('${r.id}',false)">Update Details</button>`;
   }
   if(r.requested_by_email===S.user.email && r.status==='Pending'){
@@ -1851,13 +1854,13 @@ async function openEXModal(id){
   });
   calcEXTotals();
 
-  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+  if(canFinanceProcess() && (r.status==='Authorised'||r.status==='Processed')){
     document.getElementById('ex-finance-panel').style.display = '';
     document.getElementById('ex-finance-notes').value = r.finance_notes||'';
   }
 
   // Manager approval notes
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending'){
     document.getElementById('ex-auth-note-group').style.display = '';
     document.getElementById('ex-auth-notes').readOnly = false;
   } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
@@ -1887,7 +1890,7 @@ async function openEXModal(id){
     btns += `<button class="btn btn-secondary" onclick="exportExpenseClaimXLSX('${r.id}')">📊 Export XLSX</button>`;
   }
   // Level 1: Manager approval (Pending → Approved)
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Approved')">Approve</button>`;
   }
@@ -1896,7 +1899,7 @@ async function openEXModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('EX','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('EX','${r.id}','Authorised')">Authorise</button>`;
   }
-  if(S.role==='finance' && r.status==='Authorised'){
+  if(canFinanceProcess() && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="saveEXFinance('${r.id}')">Save & Process</button>`;
   }
   if(r.employee_email===S.user.email && r.status==='Pending'){
@@ -2097,12 +2100,12 @@ async function openMIModal(id){
   });
   calcMITotals();
 
-  if(S.role==='finance' && (r.status==='Authorised'||r.status==='Processed')){
+  if(canFinanceProcess() && (r.status==='Authorised'||r.status==='Processed')){
     document.getElementById('mi-finance-panel').style.display = '';
     document.getElementById('mi-finance-notes').value = r.finance_notes||'';
   }
   // Manager approval notes
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending'){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending'){
     document.getElementById('mi-auth-note-group').style.display = '';
     document.getElementById('mi-auth-notes').readOnly = false;
   } else if(['Approved','Authorised','Rejected','Processed'].includes(r.status)){
@@ -2131,7 +2134,7 @@ async function openMIModal(id){
     btns += `<button class="btn btn-secondary" onclick="printMileageClaim('${r.id}')">🖨 Print</button>`;
   }
   // Level 1: Manager approval (Pending → Approved)
-  if((S.role==='authoriser'||S.role==='finance') && r.status==='Pending' && r.employee_email!==S.user.email){
+  if((S.role==='authoriser'||S.role==='finance'||S.role==='finance_approval') && r.status==='Pending' && r.employee_email!==S.user.email){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Approved')">Approve</button>`;
   }
@@ -2140,7 +2143,7 @@ async function openMIModal(id){
     btns += `<button class="btn btn-danger" onclick="updateStatus('MI','${r.id}','Rejected')">Reject</button>`;
     btns += `<button class="btn btn-success" onclick="updateStatus('MI','${r.id}','Authorised')">Authorise</button>`;
   }
-  if(S.role==='finance' && r.status==='Authorised'){
+  if(canFinanceProcess() && r.status==='Authorised'){
     btns += `<button class="btn btn-primary" onclick="saveMIFinance('${r.id}')">Save & Process</button>`;
   }
   if(r.employee_email===S.user.email && r.status==='Pending'){
@@ -2347,12 +2350,21 @@ async function updateStatus(type, id, newStatus){
   const rtMap  = {PR:'purchase_request',EX:'expense_claim',MI:'mileage_claim'};
   logAction(newStatus.toLowerCase(), rtMap[type], id, refNum, {notes: upd.authoriser_notes||upd.finance_authoriser_notes||''});
 
-  // Email notifications for approval chain
+  // Email notifications for the approval chain
+  const amt = rec?.total || rec?.total_claim || 0;
+  const who = rec?.requested_by || rec?.employee_name || '';
+  const reqEmail = rec?.requested_by_email || rec?.employee_email || '';
   if(newStatus === 'Approved'){
-    // Manager approved — notify finance (Ruth) for second-level authorisation
-    const amt = rec?.total || rec?.total_claim || 0;
-    const who = rec?.requested_by || rec?.employee_name || '';
-    await sendEmail('Manager Approved — Finance Authorisation Required', refNum, who, amt, rtMap[type], FINANCE_EMAIL);
+    // Manager approved → notify Ruth (Finance Approval) that it needs authorisation
+    await sendEmail('Manager Approved — Finance Authorisation Required', refNum, who, amt, rtMap[type], roleEmails('finance_approval'));
+  } else if(newStatus === 'Authorised'){
+    // Finance authorised → notify the finance team that it's ready to process
+    await sendEmail('Finance Authorised — Ready for Processing', refNum, who, amt, rtMap[type], roleEmails('finance'));
+    // …and let the requester know their request has been approved & authorised
+    if(reqEmail) await sendEmail('Your Request Has Been Authorised', refNum, who, amt, rtMap[type], reqEmail);
+  } else if(newStatus === 'Rejected'){
+    // Let the requester know it was rejected (with any notes)
+    if(reqEmail) await sendEmail('Your Request Was Rejected', refNum, who, amt, rtMap[type], reqEmail);
   }
 
   toast(`Request ${newStatus.toLowerCase()}.`);
@@ -2852,10 +2864,10 @@ let ALL_DELEGATIONS = [];
 let ACTIVE_DELEGATION = null;
 
 async function loadDelegations(){
-  // Populate delegate dropdown with authorisers + requestors (not finance — they already have the power)
+  // Populate delegate dropdown with everyone except Ruth herself (Finance Approval already holds the power)
   const sel = document.getElementById('del-user');
   if(sel){
-    const candidates = (ALL_USERS||[]).filter(u=>u.role!=='finance'&&u.is_active);
+    const candidates = (ALL_USERS||[]).filter(u=>u.role!=='finance_approval'&&u.is_active);
     sel.innerHTML = '<option value="">— Select User —</option>' +
       candidates.map(u=>`<option value="${u.email}">${u.name}</option>`).join('');
   }
@@ -2945,7 +2957,7 @@ async function revokeDelegation(id){
 
 async function checkActiveDelegation(){
   ACTIVE_DELEGATION = null;
-  if(S.role==='finance') return;
+  if(S.role==='finance_approval') return;   // Ruth already holds authorisation power
   try {
     const todayStr = today();
     const {data} = await _db.from('finance_delegations')
@@ -2959,8 +2971,13 @@ async function checkActiveDelegation(){
   } catch(e){}
 }
 
+// Finance AUTHORISATION (Approved → Authorised) — Ruth's "Finance Approval" role, or a delegate covering her.
 function canFinanceAuth(){
-  return S.role==='finance' || ACTIVE_DELEGATION!==null;
+  return S.role==='finance_approval' || ACTIVE_DELEGATION!==null;
+}
+// Finance PROCESSING (Authorised → Processed) — the finance team; Ruth can also process.
+function canFinanceProcess(){
+  return S.role==='finance' || S.role==='finance_approval';
 }
 
 // ── RATES & SETTINGS ─────────────────────────────────────
@@ -3065,6 +3082,13 @@ async function compressFiles(files){
 }
 
 // ── EMAIL ─────────────────────────────────────────────────
+// Resolve the email recipients for a given role (comma-joined); falls back to the
+// shared finance inbox if nobody holds that role yet.
+function roleEmails(role){
+  const list = (ALL_USERS||[]).filter(u=>u.role===role && u.is_active && u.email).map(u=>u.email);
+  return list.length ? list.join(',') : FINANCE_EMAIL;
+}
+
 async function sendEmail(subject, ref, name, amount, type, to=FINANCE_EMAIL){
   try {
     const {data:{session}} = await _db.auth.getSession();
@@ -3810,7 +3834,7 @@ function previewCSV(input){
   const reader=new FileReader();
   reader.onload=e=>{
     const all=parseCSV(e.target.result);
-    const valid=all.filter(r=>r.name&&r.email&&['requestor','authoriser','finance'].includes((r.role||'').toLowerCase().trim()));
+    const valid=all.filter(r=>r.name&&r.email&&['requestor','authoriser','finance','finance_approval'].includes((r.role||'').toLowerCase().trim()));
     const invalid=all.filter(r=>!valid.includes(r));
     CSV_ROWS=valid;
     document.getElementById('csv-count-msg').textContent=
