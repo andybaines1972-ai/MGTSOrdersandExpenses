@@ -1197,6 +1197,12 @@ function toast(msg, type='ok'){
   setTimeout(()=>t.className='', 3200);
 }
 
+// Pretty display name for a role value (e.g. 'finance_approval' → 'Finance Approval')
+function roleLabel(role){
+  return ({requestor:'Requestor', authoriser:'Authoriser', finance:'Finance', finance_approval:'Finance Approval'})[role]
+    || String(role||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
 function populateStaff(selId, val=''){
   const sel = document.getElementById(selId);
   sel.innerHTML = '<option value="">— Select —</option>' +
@@ -1253,7 +1259,7 @@ async function initApp(user){
   S.name = data.name;
 
   document.getElementById('nav-name').textContent = S.name;
-  document.getElementById('nav-role').textContent = S.role.charAt(0).toUpperCase()+S.role.slice(1);
+  document.getElementById('nav-role').textContent = roleLabel(S.role);
   document.getElementById('nav-delegation-badge').style.display = 'none';
 
   // show/hide UI by role
@@ -2496,7 +2502,7 @@ function renderUsers(){
   if(!ALL_USERS.length){ document.getElementById('user-tbody').innerHTML=`<tr><td colspan="7"><div class="empty"><p>No users found.</p></div></td></tr>`; return; }
   document.getElementById('user-tbody').innerHTML = ALL_USERS.map(u=>`<tr>
     <td>${esc(u.name)}</td><td>${esc(u.email)}</td>
-    <td>${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</td>
+    <td>${esc(roleLabel(u.role))}</td>
     <td>${u.is_active?'Yes':'No'}</td>
     <td><button class="btn btn-sm btn-secondary" onclick="openUserModal('${u.id}')">Edit</button></td>
     <td><button class="btn btn-sm btn-secondary" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" onclick="sendInvite(this.dataset.name,this.dataset.email,this.dataset.role)" title="Send invite email so they can set a password">✉ Invite</button></td>
@@ -2701,7 +2707,7 @@ async function runHealthCheck(){
       <div class="stat-card">
         <h3 style="font-size:22px">${userRows.length}</h3><p>Hub Users</p>
         <div style="margin-top:8px;font-size:11px;color:var(--grey)">
-          ${Object.entries(roleCount).map(([r,n])=>`${r}: <strong>${n}</strong>`).join(' &nbsp;·&nbsp; ')||'—'}
+          ${Object.entries(roleCount).map(([r,n])=>`${roleLabel(r)}: <strong>${n}</strong>`).join(' &nbsp;·&nbsp; ')||'—'}
         </div>
         <div style="margin-top:6px;font-size:11px"><strong style="color:var(--green)">DB Connected ✓</strong></div>
       </div>
@@ -2718,7 +2724,7 @@ async function runHealthCheck(){
       <tbody>
         ${userRows.map(u=>`<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px">${esc(u.email)}</td>
-          <td style="padding:6px;text-transform:capitalize">${esc(u.role)}</td>
+          <td style="padding:6px">${esc(roleLabel(u.role))}</td>
           <td style="padding:6px">${u.is_active?'<span style="color:var(--green)">Yes</span>':'<span style="color:var(--red)">No</span>'}</td>
           <td style="padding:6px"><button class="btn btn-sm btn-secondary"
             onclick="sendInvite('','${esc(u.email)}','${esc(u.role)}')" title="Send/resend login invite">✉ Invite</button></td>
