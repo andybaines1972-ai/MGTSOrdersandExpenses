@@ -495,30 +495,81 @@ textarea{resize:vertical;min-height:70px}
         </div>
         <div style="background:var(--light);border:1px solid var(--mid);border-radius:var(--radius);padding:16px;margin-bottom:16px">
           <p style="font-size:13px;color:var(--grey);margin-bottom:16px">
-            Configure mileage rates and overnight stay allowances. Rates are applied when employees submit mileage claims.
+            Mileage rates effective July 2025 onwards. Own-car rate reimburses at MAP rates up to 10,000 business miles. Company-car rates reflect fuel type and engine size. Values are in £ per mile — edit to override if HMRC/company rates change.
           </p>
-          <div class="form-grid" style="max-width:600px">
+
+          <div class="divider" style="margin-top:0">Own Car (MAP)</div>
+          <div class="form-grid" style="max-width:700px">
             <div class="form-group">
-              <label>Car (up to 10,000 miles/year) - Pence per Mile</label>
-              <input type="number" id="rate-car-basic" min="0" step="0.1" placeholder="45">
+              <label>Own Car — up to 10,000 business miles (£/mile)</label>
+              <input type="number" id="rate-own-car" min="0" step="0.01" placeholder="0.55">
+            </div>
+          </div>
+
+          <div class="divider">Company Car — Diesel</div>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Diesel — 1600cc or less (£/mile)</label>
+              <input type="number" id="rate-diesel-s" min="0" step="0.01" placeholder="0.15">
             </div>
             <div class="form-group">
-              <label>Car (over 10,000 miles/year) - Pence per Mile</label>
-              <input type="number" id="rate-car-high" min="0" step="0.1" placeholder="25">
+              <label>Diesel — 1601cc to 2000cc (£/mile)</label>
+              <input type="number" id="rate-diesel-m" min="0" step="0.01" placeholder="0.17">
             </div>
             <div class="form-group">
-              <label>Motorcycle - Pence per Mile</label>
-              <input type="number" id="rate-bike" min="0" step="0.1" placeholder="24">
+              <label>Diesel — over 2000cc (£/mile)</label>
+              <input type="number" id="rate-diesel-l" min="0" step="0.01" placeholder="0.23">
+            </div>
+          </div>
+
+          <div class="divider">Company Car — Petrol</div>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Petrol — 1400cc or less (£/mile)</label>
+              <input type="number" id="rate-petrol-s" min="0" step="0.01" placeholder="0.14">
             </div>
             <div class="form-group">
-              <label>Bicycle - Pence per Mile</label>
-              <input type="number" id="rate-bicycle" min="0" step="0.1" placeholder="20">
+              <label>Petrol — 1401cc to 2000cc (£/mile)</label>
+              <input type="number" id="rate-petrol-m" min="0" step="0.01" placeholder="0.17">
             </div>
             <div class="form-group">
-              <label>Overnight Stay Allowance - £ per Night</label>
+              <label>Petrol — over 2000cc (£/mile)</label>
+              <input type="number" id="rate-petrol-l" min="0" step="0.01" placeholder="0.26">
+            </div>
+          </div>
+
+          <div class="divider">Company Car — Hybrid</div>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Hybrid — 1400cc or less (£/mile)</label>
+              <input type="number" id="rate-hybrid-s" min="0" step="0.01" placeholder="0.14">
+            </div>
+            <div class="form-group">
+              <label>Hybrid — 1401cc to 2000cc (£/mile)</label>
+              <input type="number" id="rate-hybrid-m" min="0" step="0.01" placeholder="0.17">
+            </div>
+            <div class="form-group">
+              <label>Hybrid — over 2000cc (£/mile)</label>
+              <input type="number" id="rate-hybrid-l" min="0" step="0.01" placeholder="0.26">
+            </div>
+          </div>
+
+          <div class="divider">Company Car — Electric</div>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Fully Electric (£/mile)</label>
+              <input type="number" id="rate-electric" min="0" step="0.01" placeholder="0.07">
+            </div>
+          </div>
+
+          <div class="divider">Overnight</div>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group">
+              <label>Overnight Stay Allowance (£ per night)</label>
               <input type="number" id="rate-overnight" min="0" step="0.50" placeholder="35">
             </div>
           </div>
+
           <div style="margin-top:14px;font-size:12px;color:#666">
             <p><strong>Last Updated:</strong> <span id="rates-updated">Never</span></p>
             <p><strong>Updated By:</strong> <span id="rates-updatedby">—</span></p>
@@ -996,10 +1047,7 @@ textarea{resize:vertical;min-height:70px}
           <label>Vehicle Type *</label>
           <select id="mi-vtype" onchange="updateMIRate()">
             <option value="">— Select —</option>
-            <option value="0.55">Own Car (up to 10,000 miles) — £0.55/mile (HMRC)</option>
-            <option value="0.25">Own Car (over 10,000 miles) — £0.25/mile (HMRC)</option>
-            <option value="0.24">Motorcycle — £0.24/mile (HMRC)</option>
-            <option value="0.20">Bicycle — £0.20/mile (HMRC)</option>
+            <!-- Options populated dynamically from RATES_SETTINGS by populateMIVehicleTypes() -->
           </select>
         </div>
         <div class="form-group">
@@ -2133,6 +2181,7 @@ function renderMI(){
 
 async function openMIModal(id){
   populateStaff('mi-employee');
+  populateMIVehicleTypes();
   const modal  = document.getElementById('mi-modal');
   const footer = document.getElementById('mi-modal-footer');
   document.getElementById('mi-id').value = '';
@@ -3094,27 +3143,86 @@ function canFinanceProcess(){
 }
 
 // ── RATES & SETTINGS ─────────────────────────────────────
-let RATES_SETTINGS = {
-  car_basic: 45,
-  car_high: 25,
-  motorcycle: 24,
-  bicycle: 20,
-  overnight: 35
+// Vehicle types shown in the Mileage Claim dropdown (order preserved).
+// key = stable identifier used in RATES_SETTINGS; label = shown to user.
+const MI_VEHICLE_TYPES = [
+  { key:'own_car',    label:'Own Car — up to 10,000 business miles',      default:0.55 },
+  { key:'diesel_s',   label:'Company Car — Diesel (1600cc or less)',     default:0.15 },
+  { key:'diesel_m',   label:'Company Car — Diesel (1601cc to 2000cc)',   default:0.17 },
+  { key:'diesel_l',   label:'Company Car — Diesel (over 2000cc)',        default:0.23 },
+  { key:'petrol_s',   label:'Company Car — Petrol (1400cc or less)',     default:0.14 },
+  { key:'petrol_m',   label:'Company Car — Petrol (1401cc to 2000cc)',   default:0.17 },
+  { key:'petrol_l',   label:'Company Car — Petrol (over 2000cc)',        default:0.26 },
+  { key:'hybrid_s',   label:'Company Car — Hybrid (1400cc or less)',     default:0.14 },
+  { key:'hybrid_m',   label:'Company Car — Hybrid (1401cc to 2000cc)',   default:0.17 },
+  { key:'hybrid_l',   label:'Company Car — Hybrid (over 2000cc)',        default:0.26 },
+  { key:'electric',   label:'Company Car — Fully Electric',              default:0.07 },
+];
+
+// Map admin input IDs → RATES_SETTINGS keys.
+const RATE_INPUT_MAP = {
+  'rate-own-car':   'own_car',
+  'rate-diesel-s':  'diesel_s',
+  'rate-diesel-m':  'diesel_m',
+  'rate-diesel-l':  'diesel_l',
+  'rate-petrol-s':  'petrol_s',
+  'rate-petrol-m':  'petrol_m',
+  'rate-petrol-l':  'petrol_l',
+  'rate-hybrid-s':  'hybrid_s',
+  'rate-hybrid-m':  'hybrid_m',
+  'rate-hybrid-l':  'hybrid_l',
+  'rate-electric':  'electric',
 };
+
+let RATES_SETTINGS = (() => {
+  const s = { overnight: 35 };
+  MI_VEHICLE_TYPES.forEach(t => s[t.key] = t.default);
+  return s;
+})();
+
+// Populate the Vehicle Type <select> in the Mileage Claim modal from RATES_SETTINGS.
+function populateMIVehicleTypes(selectedValue){
+  const sel = document.getElementById('mi-vtype');
+  if(!sel) return;
+  // Preserve the placeholder as first option.
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    MI_VEHICLE_TYPES.map(t => {
+      const rate = (RATES_SETTINGS[t.key] != null ? RATES_SETTINGS[t.key] : t.default);
+      const rateStr = Number(rate).toFixed(2);
+      return `<option value="${rateStr}" data-key="${t.key}">${t.label} — £${rateStr}/mile</option>`;
+    }).join('');
+  if(selectedValue!=null && selectedValue!==''){
+    // Try exact match first; fall back to closest.
+    const target = Number(selectedValue).toFixed(2);
+    const opt = Array.from(sel.options).find(o => o.value === target);
+    if(opt) sel.value = target;
+  }
+}
 
 async function loadRatesSettings(){
   try {
     const {data} = await _db.from('system_settings').select('*').eq('setting_key','mileage_rates').single();
     if(data && data.setting_value){
-      RATES_SETTINGS = JSON.parse(data.setting_value);
+      const stored = JSON.parse(data.setting_value);
+      // Merge into RATES_SETTINGS: keep defaults for any keys the stored payload lacks
+      // (this makes migration from the old {car_basic,car_high,motorcycle,bicycle} payload seamless).
+      MI_VEHICLE_TYPES.forEach(t => {
+        if(stored[t.key] != null) RATES_SETTINGS[t.key] = parseFloat(stored[t.key]);
+      });
+      if(stored.overnight != null) RATES_SETTINGS.overnight = parseFloat(stored.overnight);
     }
   } catch(e){}
 
-  document.getElementById('rate-car-basic').value = RATES_SETTINGS.car_basic||45;
-  document.getElementById('rate-car-high').value = RATES_SETTINGS.car_high||25;
-  document.getElementById('rate-bike').value = RATES_SETTINGS.motorcycle||24;
-  document.getElementById('rate-bicycle').value = RATES_SETTINGS.bicycle||20;
-  document.getElementById('rate-overnight').value = RATES_SETTINGS.overnight||35;
+  // Populate admin form inputs (if the panel is in the DOM).
+  Object.entries(RATE_INPUT_MAP).forEach(([inputId, key]) => {
+    const el = document.getElementById(inputId);
+    if(el) el.value = RATES_SETTINGS[key];
+  });
+  const ov = document.getElementById('rate-overnight');
+  if(ov) ov.value = RATES_SETTINGS.overnight;
+
+  // Refresh dropdown so any newly-loaded rates flow into the claim modal.
+  populateMIVehicleTypes();
 
   // Show last update info
   try {
@@ -3126,20 +3234,21 @@ async function loadRatesSettings(){
       .single();
     if(logData){
       const date = new Date(logData.created_at);
-      document.getElementById('rates-updated').textContent = date.toLocaleDateString('en-GB')+' '+date.toLocaleTimeString('en-GB');
-      document.getElementById('rates-updatedby').textContent = logData.performed_by||'System';
+      const u = document.getElementById('rates-updated');
+      const b = document.getElementById('rates-updatedby');
+      if(u) u.textContent = date.toLocaleDateString('en-GB')+' '+date.toLocaleTimeString('en-GB');
+      if(b) b.textContent = logData.performed_by||'System';
     }
   } catch(e){}
 }
 
 async function saveRatesSettings(){
-  const newRates = {
-    car_basic: parseFloat(document.getElementById('rate-car-basic').value)||45,
-    car_high: parseFloat(document.getElementById('rate-car-high').value)||25,
-    motorcycle: parseFloat(document.getElementById('rate-bike').value)||24,
-    bicycle: parseFloat(document.getElementById('rate-bicycle').value)||20,
-    overnight: parseFloat(document.getElementById('rate-overnight').value)||35
-  };
+  const newRates = { overnight: parseFloat(document.getElementById('rate-overnight').value)||35 };
+  Object.entries(RATE_INPUT_MAP).forEach(([inputId, key]) => {
+    const el = document.getElementById(inputId);
+    const fallback = MI_VEHICLE_TYPES.find(t=>t.key===key)?.default ?? 0;
+    newRates[key] = parseFloat(el?.value) || fallback;
+  });
 
   try {
     const {error} = await _db.from('system_settings').upsert({
@@ -3154,6 +3263,7 @@ async function saveRatesSettings(){
     }
 
     RATES_SETTINGS = newRates;
+    populateMIVehicleTypes();
     logAction('settings_updated','system_settings',null,null,{mileage_rates: newRates});
     toast('Mileage rates updated successfully.');
     await loadRatesSettings();
